@@ -14,18 +14,24 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Client, DietPlan, Meal, WeeklyMeals, MealType, FoodItem } from "@/types";
 
-const MEAL_TYPES: MealType[] = ['breakfast', 'lunch', 'dinner', 'snacks'];
+const MEAL_TYPES: MealType[] = ['preWorkout', 'postWorkout', 'breakfast', 'lunch', 'snacks', 'dinner', 'afterDinner'];
 const MEAL_LABELS: Record<MealType, string> = {
+  preWorkout: 'Pre Workout',
+  postWorkout: 'Post Workout',
   breakfast: 'Breakfast',
   lunch: 'Lunch',
+  snacks: 'Snacks',
   dinner: 'Dinner',
-  snacks: 'Snacks'
+  afterDinner: 'After Dinner'
 };
 const MEAL_DEFAULTS: Record<MealType, { time: string }> = {
+  preWorkout: { time: '06:00' },
+  postWorkout: { time: '07:30' },
   breakfast: { time: '08:00' },
   lunch: { time: '13:00' },
+  snacks: { time: '16:00' },
   dinner: { time: '19:00' },
-  snacks: { time: '16:00' }
+  afterDinner: { time: '21:00' }
 };
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -63,10 +69,13 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
 
   // Quick mode state - each meal has multiple items
   const [quickMeals, setQuickMeals] = useState<Record<MealType, { time: string; items: FoodItem[]; notes?: string }>>({
+    preWorkout: { time: '06:00', items: [] },
+    postWorkout: { time: '07:30', items: [] },
     breakfast: { time: '08:00', items: [] },
     lunch: { time: '13:00', items: [] },
+    snacks: { time: '16:00', items: [] },
     dinner: { time: '19:00', items: [] },
-    snacks: { time: '16:00', items: [] }
+    afterDinner: { time: '21:00', items: [] }
   });
 
   useEffect(() => {
@@ -82,12 +91,16 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
         if (data.dietPlan) {
           setDietPlan(data.dietPlan);
           // Load existing meals into quick mode
-          if (data.dietPlan.meals.Monday?.breakfast) {
+          const mondayMeals = data.dietPlan.meals.Monday;
+          if (mondayMeals) {
             setQuickMeals({
-              breakfast: { time: data.dietPlan.meals.Monday.breakfast.time || '08:00', items: data.dietPlan.meals.Monday.breakfast.items || [] },
-              lunch: { time: data.dietPlan.meals.Monday.lunch?.time || '13:00', items: data.dietPlan.meals.Monday.lunch?.items || [] },
-              dinner: { time: data.dietPlan.meals.Monday.dinner?.time || '19:00', items: data.dietPlan.meals.Monday.dinner?.items || [] },
-              snacks: { time: data.dietPlan.meals.Monday.snacks?.time || '16:00', items: data.dietPlan.meals.Monday.snacks?.items || [] }
+              preWorkout: { time: mondayMeals.preWorkout?.time || '06:00', items: mondayMeals.preWorkout?.items || [] },
+              postWorkout: { time: mondayMeals.postWorkout?.time || '07:30', items: mondayMeals.postWorkout?.items || [] },
+              breakfast: { time: mondayMeals.breakfast?.time || '08:00', items: mondayMeals.breakfast?.items || [] },
+              lunch: { time: mondayMeals.lunch?.time || '13:00', items: mondayMeals.lunch?.items || [] },
+              snacks: { time: mondayMeals.snacks?.time || '16:00', items: mondayMeals.snacks?.items || [] },
+              dinner: { time: mondayMeals.dinner?.time || '19:00', items: mondayMeals.dinner?.items || [] },
+              afterDinner: { time: mondayMeals.afterDinner?.time || '21:00', items: mondayMeals.afterDinner?.items || [] }
             });
           }
         }

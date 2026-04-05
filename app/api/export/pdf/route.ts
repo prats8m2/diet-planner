@@ -9,10 +9,13 @@ interface Meal {
 }
 
 interface DayMeals {
+  preWorkout?: Meal;
+  postWorkout?: Meal;
   breakfast?: Meal;
   lunch?: Meal;
-  dinner?: Meal;
   snacks?: Meal;
+  dinner?: Meal;
+  afterDinner?: Meal;
 }
 
 function formatTime(time?: string): string {
@@ -63,10 +66,13 @@ export async function POST(request: Request) {
 function generateHTML(client: Client, dietPlan: DietPlan, exportType: 'daywise' | 'mealwise'): string {
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   const mealLabels: Record<string, string> = {
+    preWorkout: 'Pre Workout',
+    postWorkout: 'Post Workout',
     breakfast: 'Breakfast',
     lunch: 'Lunch',
+    snacks: 'Snacks',
     dinner: 'Dinner',
-    snacks: 'Snacks'
+    afterDinner: 'After Dinner'
   };
 
   let html = `<!DOCTYPE html>
@@ -353,10 +359,13 @@ function generateHTML(client: Client, dietPlan: DietPlan, exportType: 'daywise' 
       align-items: center;
     }
 
+    .meal-card.preWorkout .meal-card-header { background: #fef9c3; }
+    .meal-card.postWorkout .meal-card-header { background: #d1fae5; }
     .meal-card.breakfast .meal-card-header { background: #fef2f2; }
     .meal-card.lunch .meal-card-header { background: #ecfdf5; }
-    .meal-card.dinner .meal-card-header { background: #f5f3ff; }
     .meal-card.snacks .meal-card-header { background: #fdf2f8; }
+    .meal-card.dinner .meal-card-header { background: #f5f3ff; }
+    .meal-card.afterDinner .meal-card-header { background: #e0e7ff; }
 
     .meal-title {
       font-size: 15px;
@@ -677,7 +686,7 @@ function generateDaywiseContent(dietPlan: DietPlan, days: string[], mealLabels: 
     const dayMeals: DayMeals = dietPlan.meals[day] || {};
 
     const mealsPresent = Object.keys(dayMeals).filter(key => {
-      const meal = dayMeals[key];
+      const meal = dayMeals[key as keyof DayMeals];
       return meal && meal.items && meal.items.length > 0;
     });
 
@@ -692,7 +701,7 @@ function generateDaywiseContent(dietPlan: DietPlan, days: string[], mealLabels: 
     `;
 
     mealsPresent.forEach((mealType) => {
-      const meal = dayMeals[mealType] as Meal;
+      const meal = dayMeals[mealType as keyof DayMeals] as Meal;
       if (meal && meal.items && meal.items.length > 0) {
         content += `
           <div class="meal-card ${mealType}">
@@ -727,7 +736,7 @@ function generateDaywiseContent(dietPlan: DietPlan, days: string[], mealLabels: 
 
 function generateMealwiseContent(dietPlan: DietPlan, days: string[], mealLabels: Record<string, string>): string {
   let content = '';
-  const mealTypes = ['breakfast', 'lunch', 'dinner', 'snacks'] as const;
+  const mealTypes = ['preWorkout', 'postWorkout', 'breakfast', 'lunch', 'snacks', 'dinner', 'afterDinner'] as const;
 
   mealTypes.forEach(mealType => {
     const mealGroups = new Map<string, { time?: string, notes?: string, items: FoodItem[] }>();

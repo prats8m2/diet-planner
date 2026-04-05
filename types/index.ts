@@ -36,10 +36,13 @@ export interface WeeklyMeals {
 }
 
 export interface DailyMeals {
+  preWorkout?: Meal;
+  postWorkout?: Meal;
   breakfast?: Meal;
   lunch?: Meal;
-  dinner?: Meal;
   snacks?: Meal;
+  dinner?: Meal;
+  afterDinner?: Meal;
 }
 
 export interface Meal {
@@ -72,7 +75,7 @@ export interface FieldConfig {
 }
 
 // UI Types
-export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snacks';
+export type MealType = 'preWorkout' | 'postWorkout' | 'breakfast' | 'lunch' | 'snacks' | 'dinner' | 'afterDinner';
 
 export interface DayOfWeek {
   key: string;
