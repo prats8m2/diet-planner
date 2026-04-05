@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Users, FileText, Calendar, Settings, Instagram, Youtube, Phone, Mail } from "lucide-react";
+import { Users, FileText, Calendar, Settings } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function Home() {
@@ -19,26 +19,6 @@ export default function Home() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <a href="https://www.instagram.com/_tasteofhealth" target="_blank" rel="noopener noreferrer">
-                <button className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700" title="Instagram">
-                  <Instagram className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                </button>
-              </a>
-              <a href="https://www.youtube.com/@tasteofhealth_yt" target="_blank" rel="noopener noreferrer">
-                <button className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700" title="YouTube">
-                  <Youtube className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                </button>
-              </a>
-              <a href="tel:8299601494">
-                <button className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700" title="Call: 8299601494">
-                  <Phone className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                </button>
-              </a>
-              <a href="mailto:dt.poojasingh@gmail.com">
-                <button className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700" title="Email: dt.poojasingh@gmail.com">
-                  <Mail className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                </button>
-              </a>
               <Link href="/test">
                 <button className="px-3 py-1 text-xs font-medium bg-emerald-100 text-emerald-700 rounded-full hover:bg-emerald-200 dark:bg-emerald-900 dark:text-emerald-300">
                   Test

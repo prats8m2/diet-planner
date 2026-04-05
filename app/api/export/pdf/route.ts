@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { Client, DietPlan, FoodItem } from '@/types';
+import { LOGO_BASE64 } from './logo';
 
 interface Meal {
   time?: string;
@@ -150,6 +151,18 @@ function generateHTML(client: Client, dietPlan: DietPlan, exportType: 'daywise' 
     .dietitian-info .title {
       font-size: 11px;
       color: #6b7280;
+      margin-bottom: 6px;
+    }
+
+    .dietitian-info .contact {
+      font-size: 10px;
+      color: #6b7280;
+      line-height: 1.5;
+    }
+
+    .dietitian-info .contact a {
+      color: #16a34a;
+      text-decoration: none;
     }
 
     /* Patient Section */
@@ -452,6 +465,19 @@ function generateHTML(client: Client, dietPlan: DietPlan, exportType: 'daywise' 
     .footer-date {
       font-size: 11px;
       color: #6b7280;
+      margin-bottom: 8px;
+    }
+
+    .footer-social {
+      font-size: 10px;
+      color: #6b7280;
+      margin-top: 8px;
+    }
+
+    .footer-social a {
+      color: #16a34a;
+      text-decoration: none;
+      margin: 0 8px;
     }
 
     .footer-disclaimer {
@@ -512,15 +538,19 @@ function generateHTML(client: Client, dietPlan: DietPlan, exportType: 'daywise' 
     <!-- Header -->
     <div class="header">
       <div class="logo-section">
-        <img src="https://maas-log-prod.cn-wlcb.ufileos.com/anthropic/bf781411-73fe-482b-b592-bcb201890f1d/0cc7668a4feaea35e3b0ad9e99dcbb09.png?UCloudPublicKey=TOKEN_e15ba47a-d098-4fbd-9afc-a0dcf0e4e621&Expires=1775408147&Signature=bVrMybGgYIP++zwsH4FfRa4Q3pk=" alt="Taste of Health" class="logo">
+        <img src="${LOGO_BASE64}" alt="Taste of Health" class="logo">
         <div class="branding">
           <h1>Taste of Health</h1>
           <div class="tagline">Personalized Nutrition Plans</div>
         </div>
       </div>
       <div class="dietitian-info">
-        <div class="name">Dietitian Pooja Singh</div>
+        <div class="name">Pooja Singh</div>
         <div class="title">Clinical Dietitian</div>
+        <div class="contact">
+          📞 <a href="tel:8299601494">8299601494</a><br>
+          ✉️ <a href="mailto:dt.poojasingh@gmail.com">dt.poojasingh@gmail.com</a>
+        </div>
       </div>
     </div>
 
@@ -618,6 +648,10 @@ function generateHTML(client: Client, dietPlan: DietPlan, exportType: 'daywise' 
         month: 'long',
         day: 'numeric'
       })}</div>
+      <div class="footer-social">
+        <a href="https://www.instagram.com/_tasteofhealth">Instagram: @_tasteofhealth</a> |
+        <a href="https://www.youtube.com/@tasteofhealth_yt">YouTube: @tasteofhealth_yt</a>
+      </div>
     </div>
   </div>
 
