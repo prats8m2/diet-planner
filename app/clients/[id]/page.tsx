@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Client, DietPlan, Meal, WeeklyMeals, MealType, FoodItem } from "@/types";
 
 const MEAL_TYPES: MealType[] = ['breakfast', 'lunch', 'dinner', 'snacks'];
@@ -29,6 +30,21 @@ const MEAL_DEFAULTS: Record<MealType, { time: string }> = {
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
+// BMI Calculation Helper
+const calculateBMI = (weight: number, height: number): number => {
+  if (!weight || !height) return 0;
+  const heightInMeters = height / 100;
+  return Number((weight / (heightInMeters * heightInMeters)).toFixed(1));
+};
+
+// BMI Status Helper
+const getBMIStatus = (bmi: number): { label: string; color: string } => {
+  if (bmi < 18.5) return { label: 'Underweight', color: 'text-blue-600' };
+  if (bmi < 25) return { label: 'Normal', color: 'text-green-600' };
+  if (bmi < 30) return { label: 'Overweight', color: 'text-orange-600' };
+  return { label: 'Obese', color: 'text-red-600' };
+};
+
 export default function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const resolvedParams = use(params);
@@ -42,6 +58,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
   const [isEditing, setIsEditing] = useState(false);
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isEditingClient, setIsEditingClient] = useState(false);
+  const [isSavingClient, setIsSavingClient] = useState(false);
   const [editedClient, setEditedClient] = useState<Partial<Client>>({});
 
   // Quick mode state - each meal has multiple items
@@ -258,6 +275,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
   };
 
   const handleSaveClient = async () => {
+    setIsSavingClient(true);
     try {
       const response = await fetch(`/api/clients/${clientId}`, {
         method: 'PUT',
@@ -278,17 +296,33 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
     } catch (error) {
       console.error('Failed to update client:', error);
       alert('Failed to update client. Please try again.');
+    } finally {
+      setIsSavingClient(false);
     }
   };
 
   const updateClientMetric = (field: string, value: string | number | undefined) => {
-    setEditedClient(prev => ({
-      ...prev,
-      metrics: {
+    setEditedClient(prev => {
+      const updatedMetrics = {
         ...prev.metrics,
         [field]: value
+      };
+
+      // Auto-calculate BMI when weight or height changes
+      if (field === 'weight' || field === 'height') {
+        const weight = field === 'weight' ? (value as number) : (prev.metrics?.weight ?? client.metrics?.weight);
+        const height = field === 'height' ? (value as number) : (prev.metrics?.height ?? client.metrics?.height);
+
+        if (weight && height) {
+          updatedMetrics.bmi = calculateBMI(weight as number, height as number);
+        }
       }
-    }));
+
+      return {
+        ...prev,
+        metrics: updatedMetrics
+      };
+    });
   };
 
   if (loading) {
@@ -709,7 +743,30 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                   <p className="font-medium">{client.metrics.carbs} g</p>
                 </div>
               )}
+              {client.metrics.foodPreference && (
+                <div>
+                  <p className="text-gray-500">Food Preference</p>
+                  <p className="font-medium capitalize">{client.metrics.foodPreference === 'non-veg' ? 'Non-Vegetarian' : client.metrics.foodPreference}</p>
+                </div>
+              )}
             </div>
+            {/* BMI Display */}
+            {client.metrics.bmi && (
+              <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase tracking-wide">BMI</p>
+                    <p className="text-xl font-bold text-gray-900 dark:text-white">{client.metrics.bmi}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-gray-500 uppercase tracking-wide">Status</p>
+                    <p className={`text-sm font-semibold ${getBMIStatus(client.metrics.bmi).color}`}>
+                      {getBMIStatus(client.metrics.bmi).label}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
             {client.metrics.allergies && (
               <div className="mt-4">
                 <p className="text-gray-500 text-sm">Allergies</p>
@@ -727,11 +784,11 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
 
         {/* Edit Client Dialog */}
         <Dialog open={isEditingClient} onOpenChange={setIsEditingClient}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Edit Client Details</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
+            <div className="space-y-4 py-4">
               <div>
                 <Label htmlFor="edit-name">Name</Label>
                 <Input
@@ -784,6 +841,44 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                   />
                 </div>
               </div>
+              <div>
+                <Label htmlFor="edit-foodPreference">Food Preference</Label>
+                <Select
+                  value={editedClient.metrics?.foodPreference ?? client.metrics.foodPreference ?? ''}
+                  onValueChange={(value) => updateClientMetric('foodPreference', value as 'veg' | 'non-veg' | 'eggetarian')}
+                >
+                  <SelectTrigger id="edit-foodPreference">
+                    <SelectValue placeholder="Select preference" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="veg">Vegetarian</SelectItem>
+                    <SelectItem value="eggetarian">Eggetarian</SelectItem>
+                    <SelectItem value="non-veg">Non-Vegetarian</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {/* BMI Display */}
+              {(editedClient.metrics?.weight || client.metrics?.weight) && (editedClient.metrics?.height || client.metrics?.height) && (
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">BMI</p>
+                      <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                        {editedClient.metrics?.bmi || client.metrics?.bmi || calculateBMI(
+                          editedClient.metrics?.weight ?? client.metrics?.weight ?? 0,
+                          editedClient.metrics?.height ?? client.metrics?.height ?? 0
+                        )}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Status</p>
+                      <p className={`text-lg font-semibold ${getBMIStatus(editedClient.metrics?.bmi || client.metrics?.bmi || 0).color}`}>
+                        {getBMIStatus(editedClient.metrics?.bmi || client.metrics?.bmi || 0).label}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <Label htmlFor="edit-energy">Energy (kcal)</Label>
@@ -846,13 +941,30 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                 />
               </div>
             </div>
-            <div className="flex gap-2 justify-end mt-4">
-              <Button variant="outline" onClick={() => setIsEditingClient(false)}>
+            <div className="flex gap-2 justify-end pt-4 border-t">
+              <Button
+                variant="outline"
+                onClick={() => setIsEditingClient(false)}
+                disabled={isSavingClient}
+              >
                 Cancel
               </Button>
-              <Button onClick={handleSaveClient} className="bg-emerald-600 hover:bg-emerald-700">
-                <Save className="w-4 h-4 mr-1" />
-                Save Changes
+              <Button
+                onClick={handleSaveClient}
+                className="bg-emerald-600 hover:bg-emerald-700"
+                disabled={isSavingClient}
+              >
+                {isSavingClient ? (
+                  <>
+                    <div className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-1" />
+                    Save Changes
+                  </>
+                )}
               </Button>
             </div>
           </DialogContent>

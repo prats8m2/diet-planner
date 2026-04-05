@@ -20,6 +20,7 @@ export interface ClientMetrics {
   energy?: number;
   protein?: number;
   carbs?: number;
+  foodPreference?: 'veg' | 'non-veg' | 'eggetarian';
 }
 
 export interface DietPlan {

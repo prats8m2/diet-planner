@@ -503,6 +503,12 @@ function generateHTML(client: Client, dietPlan: DietPlan, exportType: 'daywise' 
             <div class="metric-value">${client.metrics.carbs} g</div>
           </div>
         ` : ''}
+        ${client.metrics.foodPreference ? `
+          <div class="metric-item">
+            <div class="metric-label">Food Preference</div>
+            <div class="metric-value">${client.metrics.foodPreference === 'non-veg' ? 'Non-Vegetarian' : client.metrics.foodPreference === 'eggetarian' ? 'Eggetarian' : 'Vegetarian'}</div>
+          </div>
+        ` : ''}
         ${client.metrics.goal ? `
           <div class="metric-item">
             <div class="metric-label">Goal</div>
@@ -510,6 +516,19 @@ function generateHTML(client: Client, dietPlan: DietPlan, exportType: 'daywise' 
           </div>
         ` : ''}
       </div>
+
+      ${client.metrics.bmi ? `
+        <div style="background: ${client.metrics.bmi < 18.5 ? '#eff6ff' : client.metrics.bmi < 25 ? '#f0fdf4' : client.metrics.bmi < 30 ? '#fff7ed' : '#fef2f2'}; border-left: 3px solid ${client.metrics.bmi < 18.5 ? '#3b82f6' : client.metrics.bmi < 25 ? '#22c55e' : client.metrics.bmi < 30 ? '#f97316' : '#ef4444'}; padding: 12px 16px; border-radius: 6px; margin-top: 16px; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b;">Body Mass Index</div>
+            <div style="font-size: 24px; font-weight: 700; color: #1e293b;">${client.metrics.bmi}</div>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b;">Status</div>
+            <div style="font-size: 14px; font-weight: 600; color: ${client.metrics.bmi < 18.5 ? '#2563eb' : client.metrics.bmi < 25 ? '#16a34a' : client.metrics.bmi < 30 ? '#ea580c' : '#dc2626'};">${client.metrics.bmi < 18.5 ? 'Underweight' : client.metrics.bmi < 25 ? 'Normal' : client.metrics.bmi < 30 ? 'Overweight' : 'Obese'}</div>
+          </div>
+        </div>
+      ` : ''}
 
       ${client.metrics.allergies ? `
         <div class="allergies-warning">

@@ -10,7 +10,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Client } from "@/types";
+
+// BMI Calculation Helper
+const calculateBMI = (weight: number, height: number): number => {
+  if (!weight || !height) return 0;
+  const heightInMeters = height / 100;
+  return Number((weight / (heightInMeters * heightInMeters)).toFixed(1));
+};
 
 export default function ClientsPage() {
   const router = useRouter();
@@ -29,7 +37,8 @@ export default function ClientsPage() {
     healthConditions: [] as string[],
     goal: "",
     allergies: "",
-    notes: ""
+    notes: "",
+    foodPreference: ""
   });
 
   useEffect(() => {
@@ -61,21 +70,26 @@ export default function ClientsPage() {
     if (!newClientName.trim()) return;
 
     try {
+      const weight = clientMetrics.weight ? parseFloat(clientMetrics.weight) : undefined;
+      const height = clientMetrics.height ? parseFloat(clientMetrics.height) : undefined;
+
       const response = await fetch("/api/clients", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: newClientName,
           metrics: {
-            weight: clientMetrics.weight ? parseFloat(clientMetrics.weight) : undefined,
-            height: clientMetrics.height ? parseFloat(clientMetrics.height) : undefined,
+            weight,
+            height,
             age: clientMetrics.age ? parseInt(clientMetrics.age) : undefined,
             bloodGroup: clientMetrics.bloodGroup || undefined,
             dietaryRestrictions: clientMetrics.dietaryRestrictions,
             healthConditions: clientMetrics.healthConditions,
             goal: clientMetrics.goal || undefined,
             allergies: clientMetrics.allergies || undefined,
-            notes: clientMetrics.notes || undefined
+            notes: clientMetrics.notes || undefined,
+            foodPreference: clientMetrics.foodPreference || undefined,
+            bmi: weight && height ? calculateBMI(weight, height) : undefined
           }
         })
       });
@@ -91,7 +105,8 @@ export default function ClientsPage() {
           healthConditions: [],
           goal: "",
           allergies: "",
-          notes: ""
+          notes: "",
+          foodPreference: ""
         });
         setIsDialogOpen(false);
         loadClients();
@@ -197,6 +212,32 @@ export default function ClientsPage() {
                     </div>
                   </div>
 
+                  {/* Live BMI Indicator */}
+                  {clientMetrics.weight && clientMetrics.height && (
+                    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 border">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Calculated BMI</p>
+                          <p className="text-lg font-bold text-gray-900 dark:text-white">
+                            {calculateBMI(parseFloat(clientMetrics.weight), parseFloat(clientMetrics.height))}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Status</p>
+                          <p className={`text-sm font-semibold ${
+                            calculateBMI(parseFloat(clientMetrics.weight), parseFloat(clientMetrics.height)) < 18.5 ? 'text-blue-600' :
+                            calculateBMI(parseFloat(clientMetrics.weight), parseFloat(clientMetrics.height)) < 25 ? 'text-green-600' :
+                            calculateBMI(parseFloat(clientMetrics.weight), parseFloat(clientMetrics.height)) < 30 ? 'text-orange-600' : 'text-red-600'
+                          }`}>
+                            {calculateBMI(parseFloat(clientMetrics.weight), parseFloat(clientMetrics.height)) < 18.5 ? 'Underweight' :
+                             calculateBMI(parseFloat(clientMetrics.weight), parseFloat(clientMetrics.height)) < 25 ? 'Normal' :
+                             calculateBMI(parseFloat(clientMetrics.weight), parseFloat(clientMetrics.height)) < 30 ? 'Overweight' : 'Obese'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   <div>
                     <Label htmlFor="bloodGroup">Blood Group</Label>
                     <select
@@ -214,6 +255,21 @@ export default function ClientsPage() {
                       <option value="O-">O-</option>
                       <option value="AB+">AB+</option>
                       <option value="AB-">AB-</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="foodPreference">Food Preference</Label>
+                    <select
+                      id="foodPreference"
+                      value={clientMetrics.foodPreference}
+                      onChange={(e) => setClientMetrics({ ...clientMetrics, foodPreference: e.target.value })}
+                      className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg bg-white dark:bg-gray-800 dark:border-gray-600"
+                    >
+                      <option value="">Select preference</option>
+                      <option value="veg">Vegetarian</option>
+                      <option value="eggetarian">Eggetarian</option>
+                      <option value="non-veg">Non-Vegetarian</option>
                     </select>
                   </div>
 
