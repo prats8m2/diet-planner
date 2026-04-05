@@ -66,12 +66,6 @@ function generateHTML(client: Client, dietPlan: DietPlan, exportType: 'daywise' 
     dinner: '#8B5CF6',
     snacks: '#EC4899'
   };
-  const mealIcons: Record<string, string> = {
-    breakfast: '🌅',
-    lunch: '🍱',
-    dinner: '🍽️',
-    snacks: '🍪'
-  };
 
   let html = `<!DOCTYPE html>
 <html lang="en">
@@ -211,8 +205,16 @@ function generateHTML(client: Client, dietPlan: DietPlan, exportType: 'daywise' 
       background: #fef2f2;
       border-left: 3px solid #ef4444;
       border-radius: 6px;
-      font-size: 13px;
+      font-size: 12px;
       color: #991b1b;
+      font-weight: 400;
+      line-height: 1.5;
+    }
+
+    .allergies-warning::before {
+      content: 'Allergies: ';
+      font-weight: 600;
+      color: #7f1d1d;
     }
 
     /* Content */
@@ -289,42 +291,54 @@ function generateHTML(client: Client, dietPlan: DietPlan, exportType: 'daywise' 
     .food-list {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 8px;
     }
 
     .food-item {
-      padding: 12px 0;
-      border-bottom: 1px solid #f1f5f9;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      padding: 10px 16px;
+      background: #f8fafc;
+      border-radius: 8px;
+      border-left: 3px solid transparent;
     }
 
-    .food-item:last-child {
-      border-bottom: none;
-      padding-bottom: 0;
-    }
-
-    .food-item:first-child {
-      padding-top: 0;
-    }
+    .food-item.breakfast { border-left-color: #FF6B6B; }
+    .food-item.lunch { border-left-color: #10B981; }
+    .food-item.dinner { border-left-color: #8B5CF6; }
+    .food-item.snacks { border-left-color: #EC4899; }
 
     .food-name {
-      font-size: 15px;
-      font-weight: 600;
-      color: #334155;
-      margin-bottom: 4px;
-    }
-
-    .food-details {
-      display: flex;
-      gap: 20px;
-      font-size: 13px;
-      color: #64748b;
+      font-size: 14px;
       font-weight: 500;
+      color: #1e293b;
+      flex: 1;
     }
 
-    .food-details span {
+    .food-meta {
       display: flex;
-      align-items: center;
+      gap: 16px;
+      font-size: 12px;
+      color: #64748b;
+      font-weight: 400;
+    }
+
+    .food-meta-item {
+      display: flex;
       gap: 4px;
+    }
+
+    .food-meta-label {
+      color: #94a3b8;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .food-meta-value {
+      color: #475569;
+      font-weight: 500;
     }
 
     /* Notes */
@@ -334,9 +348,16 @@ function generateHTML(client: Client, dietPlan: DietPlan, exportType: 'daywise' 
       background: #fffbeb;
       border-left: 3px solid #fbbf24;
       border-radius: 6px;
-      font-size: 13px;
+      font-size: 12px;
       color: #92400e;
-      font-weight: 500;
+      font-weight: 400;
+      line-height: 1.5;
+    }
+
+    .meal-notes::before {
+      content: 'Note: ';
+      font-weight: 600;
+      color: #78350f;
     }
 
     /* Footer */
@@ -492,7 +513,7 @@ function generateHTML(client: Client, dietPlan: DietPlan, exportType: 'daywise' 
 
       ${client.metrics.allergies ? `
         <div class="allergies-warning">
-          ⚠️ <strong>Allergies:</strong> ${client.metrics.allergies}
+          ${client.metrics.allergies}
         </div>
       ` : ''}
     </div>
@@ -500,7 +521,7 @@ function generateHTML(client: Client, dietPlan: DietPlan, exportType: 'daywise' 
     <!-- Content -->
     <div class="content">
       ${exportType === 'daywise'
-        ? generateDaywiseContent(dietPlan, days, mealLabels, mealIcons)
+        ? generateDaywiseContent(dietPlan, days, mealLabels)
         : generateMealwiseContent(dietPlan, days, mealLabels)
       }
     </div>
@@ -535,7 +556,7 @@ function generateHTML(client: Client, dietPlan: DietPlan, exportType: 'daywise' 
   return html;
 }
 
-function generateDaywiseContent(dietPlan: DietPlan, days: string[], mealLabels: Record<string, string>, mealIcons: Record<string, string>): string {
+function generateDaywiseContent(dietPlan: DietPlan, days: string[], mealLabels: Record<string, string>): string {
   let content = '';
 
   days.forEach((day, index) => {
@@ -562,23 +583,33 @@ function generateDaywiseContent(dietPlan: DietPlan, days: string[], mealLabels: 
         content += `
           <div class="meal-card ${mealType}">
             <div class="meal-header">
-              <div class="meal-title">${mealIcons[mealType]} ${mealLabels[mealType]}</div>
+              <div class="meal-title">${mealLabels[mealType]}</div>
               ${meal.time ? `<div class="meal-time">${formatTime(meal.time)}</div>` : ''}
             </div>
             <div class="food-list">
               ${meal.items.map(item => `
-                <div class="food-item">
+                <div class="food-item ${mealType}">
                   <div class="food-name">${item.name}</div>
                   ${item.portions || item.calories ? `
-                    <div class="food-details">
-                      ${item.portions ? `<span>📊 ${item.portions}</span>` : ''}
-                      ${item.calories ? `<span>🔥 ${item.calories} cal</span>` : ''}
+                    <div class="food-meta">
+                      ${item.portions ? `
+                        <div class="food-meta-item">
+                          <span class="food-meta-label">Portion</span>
+                          <span class="food-meta-value">${item.portions}</span>
+                        </div>
+                      ` : ''}
+                      ${item.calories ? `
+                        <div class="food-meta-item">
+                          <span class="food-meta-label">Calories</span>
+                          <span class="food-meta-value">${item.calories}</span>
+                        </div>
+                      ` : ''}
                     </div>
                   ` : ''}
                 </div>
               `).join('')}
             </div>
-            ${meal.notes ? `<div class="meal-notes">📝 ${meal.notes}</div>` : ''}
+            ${meal.notes ? `<div class="meal-notes">${meal.notes}</div>` : ''}
           </div>
         `;
       }
@@ -626,18 +657,28 @@ function generateMealwiseContent(dietPlan: DietPlan, days: string[], mealLabels:
           ` : ''}
           <div class="food-list">
             ${group.items.map(item => `
-              <div class="food-item">
+              <div class="food-item ${mealType}">
                 <div class="food-name">${item.name}</div>
                 ${item.portions || item.calories ? `
-                  <div class="food-details">
-                    ${item.portions ? `<span>📊 ${item.portions}</span>` : ''}
-                    ${item.calories ? `<span>🔥 ${item.calories} cal</span>` : ''}
+                  <div class="food-meta">
+                    ${item.portions ? `
+                      <div class="food-meta-item">
+                        <span class="food-meta-label">Portion</span>
+                        <span class="food-meta-value">${item.portions}</span>
+                      </div>
+                    ` : ''}
+                    ${item.calories ? `
+                      <div class="food-meta-item">
+                        <span class="food-meta-label">Calories</span>
+                        <span class="food-meta-value">${item.calories}</span>
+                      </div>
+                    ` : ''}
                   </div>
                 ` : ''}
               </div>
             `).join('')}
           </div>
-          ${group.notes ? `<div class="meal-notes">📝 ${group.notes}</div>` : ''}
+          ${group.notes ? `<div class="meal-notes">${group.notes}</div>` : ''}
         </div>
       `;
     });
