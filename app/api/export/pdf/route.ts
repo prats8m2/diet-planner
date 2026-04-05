@@ -23,6 +23,13 @@ function formatTime(time?: string): string {
   return `${formattedHour}:${minutes} ${ampm}`;
 }
 
+function getBMIStatus(bmi: number): { label: string; color: string; bgColor: string } {
+  if (bmi < 18.5) return { label: 'Underweight', color: '#1e40af', bgColor: '#dbeafe' };
+  if (bmi < 25) return { label: 'Normal', color: '#166534', bgColor: '#dcfce7' };
+  if (bmi < 30) return { label: 'Overweight', color: '#c2410c', bgColor: '#fed7aa' };
+  return { label: 'Obese', color: '#b91c1c', bgColor: '#fecaca' };
+}
+
 export async function POST(request: Request) {
   try {
     const { client, dietPlan, exportType = 'daywise' } = await request.json();
@@ -60,12 +67,6 @@ function generateHTML(client: Client, dietPlan: DietPlan, exportType: 'daywise' 
     dinner: 'Dinner',
     snacks: 'Snacks'
   };
-  const mealColors: Record<string, string> = {
-    breakfast: '#FF6B6B',
-    lunch: '#10B981',
-    dinner: '#8B5CF6',
-    snacks: '#EC4899'
-  };
 
   let html = `<!DOCTYPE html>
 <html lang="en">
@@ -80,58 +81,60 @@ function generateHTML(client: Client, dietPlan: DietPlan, exportType: 'daywise' 
 
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #f8fafc;
-      color: #1e293b;
+      background: #ffffff;
+      color: #1a1a1a;
       line-height: 1.5;
       padding: 20px;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
     }
 
     .page {
       max-width: 210mm;
       margin: 0 auto;
-      background: white;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      background: #ffffff;
+      border: 1px solid #d1d5db;
     }
 
-    /* Header Styles */
+    /* Header */
     .header {
-      background: white;
-      padding: 32px 40px;
+      background: #ffffff;
+      padding: 24px 32px;
+      border-bottom: 2px solid #16a34a;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      border-bottom: 2px solid #e2e8f0;
     }
 
     .logo-section {
       display: flex;
       align-items: center;
-      gap: 20px;
+      gap: 16px;
     }
 
     .logo {
-      width: 56px;
-      height: 56px;
-      border-radius: 12px;
+      width: 48px;
+      height: 48px;
+      border-radius: 8px;
       object-fit: contain;
-      background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-      padding: 8px;
+      background: #f0fdf4;
+      padding: 6px;
     }
 
     .branding h1 {
-      font-size: 26px;
+      font-size: 22px;
       font-weight: 800;
       color: #16a34a;
-      letter-spacing: -0.5px;
+      letter-spacing: -0.3px;
       margin-bottom: 2px;
     }
 
     .branding .tagline {
-      font-size: 11px;
-      color: #64748b;
+      font-size: 10px;
+      color: #6b7280;
       font-weight: 500;
       text-transform: uppercase;
-      letter-spacing: 1.5px;
+      letter-spacing: 1px;
     }
 
     .dietitian-info {
@@ -139,253 +142,324 @@ function generateHTML(client: Client, dietPlan: DietPlan, exportType: 'daywise' 
     }
 
     .dietitian-info .name {
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 600;
-      color: #1e293b;
+      color: #1f2937;
     }
 
     .dietitian-info .title {
-      font-size: 12px;
-      color: #64748b;
+      font-size: 11px;
+      color: #6b7280;
     }
 
-    /* Patient Info */
+    /* Patient Section */
     .patient-section {
-      padding: 28px 40px;
-      background: linear-gradient(135deg, #f0fdf4 0%, #f8fafc 100%);
-      border-bottom: 1px solid #e2e8f0;
+      padding: 24px 32px;
+      background: #fafafa;
+      border-bottom: 1px solid #e5e7eb;
     }
 
-    .patient-label {
-      font-size: 10px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 1.5px;
-      color: #16a34a;
-      margin-bottom: 8px;
-    }
-
-    .patient-name {
-      font-size: 32px;
-      font-weight: 800;
-      color: #0f172a;
-      letter-spacing: -0.5px;
+    .patient-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       margin-bottom: 20px;
     }
 
-    .metrics-grid {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 32px;
+    .patient-name-section {
+      flex: 1;
     }
 
-    .metric-item {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .metric-label {
-      font-size: 11px;
-      font-weight: 500;
+    .patient-label {
+      font-size: 9px;
+      font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: #64748b;
+      letter-spacing: 1.2px;
+      color: #16a34a;
       margin-bottom: 4px;
     }
 
-    .metric-value {
-      font-size: 18px;
-      font-weight: 700;
-      color: #1e293b;
+    .patient-name {
+      font-size: 28px;
+      font-weight: 800;
+      color: #111827;
+      letter-spacing: -0.5px;
     }
 
-    .allergies-warning {
-      margin-top: 16px;
-      padding: 12px 16px;
-      background: #fef2f2;
-      border-left: 3px solid #ef4444;
+    .patient-badges {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .badge {
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .badge-goal {
+      background: #ecfdf5;
+      color: #047857;
+      border: 1px solid #10b981;
+    }
+
+    .badge-pref {
+      background: #fef3c7;
+      color: #b45309;
+      border: 1px solid #f59e0b;
+    }
+
+    .metrics-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    .metrics-table td {
+      padding: 8px 0;
+      vertical-align: top;
+    }
+
+    .metrics-table .label {
+      font-size: 10px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #6b7280;
+      padding-bottom: 2px;
+    }
+
+    .metrics-table .value {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1f2937;
+    }
+
+    .metrics-table .value-small {
+      font-size: 13px;
+      font-weight: 600;
+      color: #1f2937;
+    }
+
+    .bmi-card {
+      display: inline-block;
+      padding: 10px 16px;
       border-radius: 6px;
-      font-size: 12px;
-      color: #991b1b;
-      font-weight: 400;
-      line-height: 1.5;
+      margin-top: 16px;
+      border-left: 3px solid;
     }
 
-    .allergies-warning::before {
+    .bmi-label {
+      font-size: 9px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #6b7280;
+      margin-bottom: 2px;
+    }
+
+    .bmi-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: #111827;
+    }
+
+    .bmi-status {
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: 2px;
+    }
+
+    .allergies-box {
+      margin-top: 12px;
+      padding: 10px 14px;
+      background: #fef2f2;
+      border-left: 3px solid #dc2626;
+      font-size: 11px;
+      color: #991b1b;
+      line-height: 1.4;
+    }
+
+    .allergies-box::before {
       content: 'Allergies: ';
       font-weight: 600;
-      color: #7f1d1d;
     }
 
     /* Content */
     .content {
-      padding: 32px 40px;
+      padding: 24px 32px;
     }
 
     .day-section {
-      margin-bottom: 36px;
+      margin-bottom: 32px;
     }
 
     .day-header {
       display: flex;
       align-items: center;
       gap: 12px;
-      margin-bottom: 20px;
-      padding-bottom: 12px;
-      border-bottom: 2px solid #e2e8f0;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #d1d5db;
     }
 
     .day-title {
-      font-size: 22px;
+      font-size: 18px;
       font-weight: 700;
-      color: #1e293b;
+      color: #111827;
     }
 
     .day-number {
-      font-size: 13px;
-      color: #64748b;
+      font-size: 12px;
+      color: #6b7280;
       font-weight: 500;
+      background: #f3f4f6;
+      padding: 2px 8px;
+      border-radius: 4px;
     }
 
     /* Meal Card */
     .meal-card {
-      background: white;
-      border: 1px solid #e2e8f0;
-      border-radius: 12px;
-      padding: 20px;
-      margin-bottom: 16px;
+      background: #ffffff;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      overflow: hidden;
     }
 
-    .meal-card.breakfast { border-left: 4px solid #FF6B6B; }
-    .meal-card.lunch { border-left: 4px solid #10B981; }
-    .meal-card.dinner { border-left: 4px solid #8B5CF6; }
-    .meal-card.snacks { border-left: 4px solid #EC4899; }
-
-    .meal-header {
+    .meal-card-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid #e5e7eb;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 16px;
     }
 
+    .meal-card.breakfast .meal-card-header { background: #fef2f2; }
+    .meal-card.lunch .meal-card-header { background: #ecfdf5; }
+    .meal-card.dinner .meal-card-header { background: #f5f3ff; }
+    .meal-card.snacks .meal-card-header { background: #fdf2f8; }
+
     .meal-title {
-      font-size: 18px;
+      font-size: 15px;
       font-weight: 700;
-      color: #1e293b;
-      display: flex;
-      align-items: center;
-      gap: 8px;
+      color: #1f2937;
     }
 
     .meal-time {
-      font-size: 13px;
+      font-size: 11px;
       font-weight: 600;
-      color: #64748b;
-      background: #f1f5f9;
-      padding: 6px 14px;
-      border-radius: 20px;
-      letter-spacing: 0.5px;
+      color: #6b7280;
+      background: #ffffff;
+      padding: 4px 10px;
+      border-radius: 4px;
+      border: 1px solid #e5e7eb;
     }
 
     /* Food Items */
     .food-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
+      padding: 12px 16px;
     }
 
     .food-item {
       display: flex;
       align-items: baseline;
       justify-content: space-between;
-      padding: 10px 16px;
-      background: #f8fafc;
-      border-radius: 8px;
-      border-left: 3px solid transparent;
+      padding: 8px 0;
+      border-bottom: 1px dashed #e5e7eb;
     }
 
-    .food-item.breakfast { border-left-color: #FF6B6B; }
-    .food-item.lunch { border-left-color: #10B981; }
-    .food-item.dinner { border-left-color: #8B5CF6; }
-    .food-item.snacks { border-left-color: #EC4899; }
+    .food-item:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .food-item:first-child {
+      padding-top: 0;
+    }
+
+    .food-item::before {
+      content: '•';
+      color: #16a34a;
+      font-size: 16px;
+      font-weight: bold;
+      margin-right: 8px;
+    }
 
     .food-name {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 500;
-      color: #1e293b;
+      color: #1f2937;
       flex: 1;
     }
 
     .food-meta {
       display: flex;
-      gap: 16px;
-      font-size: 12px;
-      color: #64748b;
-      font-weight: 400;
+      gap: 12px;
+      font-size: 11px;
+      color: #6b7280;
     }
 
-    .food-meta-item {
+    .food-meta span {
       display: flex;
-      gap: 4px;
+      align-items: center;
+      gap: 2px;
     }
 
     .food-meta-label {
-      color: #94a3b8;
-      font-size: 11px;
+      color: #9ca3af;
+      font-size: 9px;
       text-transform: uppercase;
-      letter-spacing: 0.3px;
-    }
-
-    .food-meta-value {
-      color: #475569;
-      font-weight: 500;
     }
 
     /* Notes */
     .meal-notes {
-      margin-top: 16px;
-      padding: 12px 16px;
+      margin: 12px 16px;
+      padding: 10px 14px;
       background: #fffbeb;
-      border-left: 3px solid #fbbf24;
-      border-radius: 6px;
-      font-size: 12px;
+      border: 1px solid #fde68a;
+      border-radius: 4px;
+      font-size: 11px;
       color: #92400e;
-      font-weight: 400;
-      line-height: 1.5;
+      line-height: 1.4;
     }
 
     .meal-notes::before {
       content: 'Note: ';
       font-weight: 600;
-      color: #78350f;
     }
 
     /* Footer */
     .footer {
-      padding: 24px 40px;
-      background: #f8fafc;
-      border-top: 1px solid #e2e8f0;
+      padding: 20px 32px;
+      background: #fafafa;
+      border-top: 1px solid #e5e7eb;
       text-align: center;
     }
 
     .footer-brand {
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
-      color: #1e293b;
-      margin-bottom: 4px;
+      color: #1f2937;
+      margin-bottom: 2px;
     }
 
     .footer-date {
-      font-size: 12px;
-      color: #64748b;
+      font-size: 11px;
+      color: #6b7280;
     }
 
     .footer-disclaimer {
-      margin-top: 12px;
-      font-size: 11px;
-      color: #94a3b8;
-      line-height: 1.6;
-      max-width: 500px;
+      margin-top: 10px;
+      font-size: 10px;
+      color: #9ca3af;
+      line-height: 1.5;
+      max-width: 480px;
       margin-left: auto;
       margin-right: auto;
     }
@@ -398,30 +472,31 @@ function generateHTML(client: Client, dietPlan: DietPlan, exportType: 'daywise' 
       background: #16a34a;
       color: white;
       border: none;
-      padding: 12px 24px;
-      border-radius: 10px;
+      padding: 10px 20px;
+      border-radius: 8px;
       font-weight: 600;
-      font-size: 14px;
+      font-size: 13px;
       cursor: pointer;
-      box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
       z-index: 1000;
       font-family: inherit;
-      transition: all 0.2s;
     }
 
     .print-button:hover {
       background: #15803d;
-      transform: translateY(-1px);
     }
 
     /* Print Styles */
     @media print {
       .print-button { display: none !important; }
-      body { padding: 0; background: white; }
-      .page { box-shadow: none; }
+      body { padding: 0; }
+      .page { border: none; }
       .day-section { page-break-inside: avoid; }
       .meal-card { page-break-inside: avoid; }
-      .meal-card { orphans: 3; widows: 3; }
+      * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
     }
 
     @page {
@@ -431,7 +506,7 @@ function generateHTML(client: Client, dietPlan: DietPlan, exportType: 'daywise' 
   </style>
 </head>
 <body>
-  <button class="print-button" onclick="window.print()">🖨️ Print / Save as PDF</button>
+  <button class="print-button" onclick="window.print()">Print / Save as PDF</button>
 
   <div class="page">
     <!-- Header -->
@@ -451,87 +526,76 @@ function generateHTML(client: Client, dietPlan: DietPlan, exportType: 'daywise' 
 
     <!-- Patient Info -->
     <div class="patient-section">
-      <div class="patient-label">Patient Details</div>
-      <div class="patient-name">${client.name}</div>
-
-      <div class="metrics-grid">
-        ${client.metrics.weight ? `
-          <div class="metric-item">
-            <div class="metric-label">Weight</div>
-            <div class="metric-value">${client.metrics.weight} kg</div>
+      <div class="patient-header">
+        <div class="patient-name-section">
+          <div class="patient-label">Patient Details</div>
+          <div class="patient-name">${client.name}</div>
+          <div class="patient-badges">
+            ${client.metrics.goal ? `<div class="badge badge-goal">Goal: ${client.metrics.goal}</div>` : ''}
+            ${client.metrics.foodPreference ? `<div class="badge badge-pref">${client.metrics.foodPreference === 'non-veg' ? 'Non-Vegetarian' : client.metrics.foodPreference === 'eggetarian' ? 'Eggetarian' : 'Vegetarian'}</div>` : ''}
           </div>
-        ` : ''}
-        ${client.metrics.height ? `
-          <div class="metric-item">
-            <div class="metric-label">Height</div>
-            <div class="metric-value">${client.metrics.height} cm</div>
-          </div>
-        ` : ''}
-        ${client.metrics.age ? `
-          <div class="metric-item">
-            <div class="metric-label">Age</div>
-            <div class="metric-value">${client.metrics.age} years</div>
-          </div>
-        ` : ''}
-        ${client.metrics.bmi ? `
-          <div class="metric-item">
-            <div class="metric-label">BMI</div>
-            <div class="metric-value">${client.metrics.bmi.toFixed(1)}</div>
-          </div>
-        ` : ''}
-        ${client.metrics.bloodGroup ? `
-          <div class="metric-item">
-            <div class="metric-label">Blood Group</div>
-            <div class="metric-value">${client.metrics.bloodGroup}</div>
-          </div>
-        ` : ''}
-        ${client.metrics.energy ? `
-          <div class="metric-item">
-            <div class="metric-label">Energy</div>
-            <div class="metric-value">${client.metrics.energy} kcal</div>
-          </div>
-        ` : ''}
-        ${client.metrics.protein ? `
-          <div class="metric-item">
-            <div class="metric-label">Protein</div>
-            <div class="metric-value">${client.metrics.protein} g</div>
-          </div>
-        ` : ''}
-        ${client.metrics.carbs ? `
-          <div class="metric-item">
-            <div class="metric-label">Carbs</div>
-            <div class="metric-value">${client.metrics.carbs} g</div>
-          </div>
-        ` : ''}
-        ${client.metrics.foodPreference ? `
-          <div class="metric-item">
-            <div class="metric-label">Food Preference</div>
-            <div class="metric-value">${client.metrics.foodPreference === 'non-veg' ? 'Non-Vegetarian' : client.metrics.foodPreference === 'eggetarian' ? 'Eggetarian' : 'Vegetarian'}</div>
-          </div>
-        ` : ''}
-        ${client.metrics.goal ? `
-          <div class="metric-item">
-            <div class="metric-label">Goal</div>
-            <div class="metric-value">${client.metrics.goal}</div>
-          </div>
-        ` : ''}
+        </div>
       </div>
 
+      <table class="metrics-table">
+        <tr>
+          ${client.metrics.weight ? `
+            <td>
+              <div class="label">Weight</div>
+              <div class="value">${client.metrics.weight} kg</div>
+            </td>
+          ` : ''}
+          ${client.metrics.height ? `
+            <td>
+              <div class="label">Height</div>
+              <div class="value">${client.metrics.height} cm</div>
+            </td>
+          ` : ''}
+          ${client.metrics.age ? `
+            <td>
+              <div class="label">Age</div>
+              <div class="value">${client.metrics.age} yrs</div>
+            </td>
+          ` : ''}
+          ${client.metrics.bloodGroup ? `
+            <td>
+              <div class="label">Blood Group</div>
+              <div class="value">${client.metrics.bloodGroup}</div>
+            </td>
+          ` : ''}
+        </tr>
+        <tr>
+          ${client.metrics.energy ? `
+            <td>
+              <div class="label">Energy</div>
+              <div class="value-small">${client.metrics.energy} kcal</div>
+            </td>
+          ` : ''}
+          ${client.metrics.protein ? `
+            <td>
+              <div class="label">Protein</div>
+              <div class="value-small">${client.metrics.protein} g</div>
+            </td>
+          ` : ''}
+          ${client.metrics.carbs ? `
+            <td>
+              <div class="label">Carbs</div>
+              <div class="value-small">${client.metrics.carbs} g</div>
+            </td>
+          ` : ''}
+        </tr>
+      </table>
+
       ${client.metrics.bmi ? `
-        <div style="background: ${client.metrics.bmi < 18.5 ? '#eff6ff' : client.metrics.bmi < 25 ? '#f0fdf4' : client.metrics.bmi < 30 ? '#fff7ed' : '#fef2f2'}; border-left: 3px solid ${client.metrics.bmi < 18.5 ? '#3b82f6' : client.metrics.bmi < 25 ? '#22c55e' : client.metrics.bmi < 30 ? '#f97316' : '#ef4444'}; padding: 12px 16px; border-radius: 6px; margin-top: 16px; display: flex; justify-content: space-between; align-items: center;">
-          <div>
-            <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b;">Body Mass Index</div>
-            <div style="font-size: 24px; font-weight: 700; color: #1e293b;">${client.metrics.bmi}</div>
-          </div>
-          <div style="text-align: right;">
-            <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b;">Status</div>
-            <div style="font-size: 14px; font-weight: 600; color: ${client.metrics.bmi < 18.5 ? '#2563eb' : client.metrics.bmi < 25 ? '#16a34a' : client.metrics.bmi < 30 ? '#ea580c' : '#dc2626'};">${client.metrics.bmi < 18.5 ? 'Underweight' : client.metrics.bmi < 25 ? 'Normal' : client.metrics.bmi < 30 ? 'Overweight' : 'Obese'}</div>
-          </div>
+        <div class="bmi-card" style="background: ${getBMIStatus(client.metrics.bmi).bgColor}; border-left-color: ${getBMIStatus(client.metrics.bmi).color};">
+          <div class="bmi-label">Body Mass Index</div>
+          <div class="bmi-value">${client.metrics.bmi.toFixed(1)}</div>
+          <div class="bmi-status" style="color: ${getBMIStatus(client.metrics.bmi).color};">${getBMIStatus(client.metrics.bmi).label}</div>
         </div>
       ` : ''}
 
       ${client.metrics.allergies ? `
-        <div class="allergies-warning">
+        <div class="allergies-box">
           ${client.metrics.allergies}
         </div>
       ` : ''}
@@ -601,28 +665,18 @@ function generateDaywiseContent(dietPlan: DietPlan, days: string[], mealLabels: 
       if (meal && meal.items && meal.items.length > 0) {
         content += `
           <div class="meal-card ${mealType}">
-            <div class="meal-header">
+            <div class="meal-card-header">
               <div class="meal-title">${mealLabels[mealType]}</div>
               ${meal.time ? `<div class="meal-time">${formatTime(meal.time)}</div>` : ''}
             </div>
             <div class="food-list">
               ${meal.items.map(item => `
-                <div class="food-item ${mealType}">
+                <div class="food-item">
                   <div class="food-name">${item.name}</div>
                   ${item.portions || item.calories ? `
                     <div class="food-meta">
-                      ${item.portions ? `
-                        <div class="food-meta-item">
-                          <span class="food-meta-label">Portion</span>
-                          <span class="food-meta-value">${item.portions}</span>
-                        </div>
-                      ` : ''}
-                      ${item.calories ? `
-                        <div class="food-meta-item">
-                          <span class="food-meta-label">Calories</span>
-                          <span class="food-meta-value">${item.calories}</span>
-                        </div>
-                      ` : ''}
+                      ${item.portions ? `<span><span class="food-meta-label">Portion:</span> ${item.portions}</span>` : ''}
+                      ${item.calories ? `<span><span class="food-meta-label">Cal:</span> ${item.calories}</span>` : ''}
                     </div>
                   ` : ''}
                 </div>
@@ -637,7 +691,7 @@ function generateDaywiseContent(dietPlan: DietPlan, days: string[], mealLabels: 
     content += `</div>`;
   });
 
-  return content || '<p style="text-align: center; color: #94a3b8; padding: 40px; font-size: 14px;">No meals planned for this period.</p>';
+  return content || '<p style="text-align: center; color: #9ca3af; padding: 40px; font-size: 13px;">No meals planned for this period.</p>';
 }
 
 function generateMealwiseContent(dietPlan: DietPlan, days: string[], mealLabels: Record<string, string>): string {
@@ -670,28 +724,18 @@ function generateMealwiseContent(dietPlan: DietPlan, days: string[], mealLabels:
       content += `
         <div class="meal-card ${mealType}">
           ${group.time ? `
-            <div class="meal-header">
+            <div class="meal-card-header">
               <div class="meal-time">${formatTime(group.time)}</div>
             </div>
           ` : ''}
           <div class="food-list">
             ${group.items.map(item => `
-              <div class="food-item ${mealType}">
+              <div class="food-item">
                 <div class="food-name">${item.name}</div>
                 ${item.portions || item.calories ? `
                   <div class="food-meta">
-                    ${item.portions ? `
-                      <div class="food-meta-item">
-                        <span class="food-meta-label">Portion</span>
-                        <span class="food-meta-value">${item.portions}</span>
-                      </div>
-                    ` : ''}
-                    ${item.calories ? `
-                      <div class="food-meta-item">
-                        <span class="food-meta-label">Calories</span>
-                        <span class="food-meta-value">${item.calories}</span>
-                      </div>
-                    ` : ''}
+                    ${item.portions ? `<span><span class="food-meta-label">Portion:</span> ${item.portions}</span>` : ''}
+                    ${item.calories ? `<span><span class="food-meta-label">Cal:</span> ${item.calories}</span>` : ''}
                   </div>
                 ` : ''}
               </div>
@@ -705,5 +749,5 @@ function generateMealwiseContent(dietPlan: DietPlan, days: string[], mealLabels:
     content += `</div>`;
   });
 
-  return content || '<p style="text-align: center; color: #94a3b8; padding: 40px; font-size: 14px;">No meals planned for this period.</p>';
+  return content || '<p style="text-align: center; color: #9ca3af; padding: 40px; font-size: 13px;">No meals planned for this period.</p>';
 }
