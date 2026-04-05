@@ -520,7 +520,7 @@ function generateHTML(client: Client, dietPlan: DietPlan, exportType: 'daywise' 
       </div>
       <div class="dietitian-info">
         <div class="name">Dietitian Pooja Singh</div>
-        <div class="title">Clinical Nutritionist</div>
+        <div class="title">Clinical Dietitian</div>
       </div>
     </div>
 
@@ -618,9 +618,6 @@ function generateHTML(client: Client, dietPlan: DietPlan, exportType: 'daywise' 
         month: 'long',
         day: 'numeric'
       })}</div>
-      <div class="footer-disclaimer">
-        This personalized nutrition plan is designed for your specific needs. Please consult a healthcare provider before making significant dietary changes.
-      </div>
     </div>
   </div>
 
