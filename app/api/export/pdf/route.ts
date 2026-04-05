@@ -464,6 +464,24 @@ function generateHTML(client: Client, dietPlan: DietPlan, exportType: 'daywise' 
             <div class="metric-value">${client.metrics.bloodGroup}</div>
           </div>
         ` : ''}
+        ${client.metrics.energy ? `
+          <div class="metric-item">
+            <div class="metric-label">Energy</div>
+            <div class="metric-value">${client.metrics.energy} kcal</div>
+          </div>
+        ` : ''}
+        ${client.metrics.protein ? `
+          <div class="metric-item">
+            <div class="metric-label">Protein</div>
+            <div class="metric-value">${client.metrics.protein} g</div>
+          </div>
+        ` : ''}
+        ${client.metrics.carbs ? `
+          <div class="metric-item">
+            <div class="metric-label">Carbs</div>
+            <div class="metric-value">${client.metrics.carbs} g</div>
+          </div>
+        ` : ''}
         ${client.metrics.goal ? `
           <div class="metric-item">
             <div class="metric-label">Goal</div>

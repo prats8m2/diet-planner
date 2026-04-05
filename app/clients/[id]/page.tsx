@@ -691,6 +691,24 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                   <p className="font-medium">{client.metrics.bloodGroup}</p>
                 </div>
               )}
+              {client.metrics.energy && (
+                <div>
+                  <p className="text-gray-500">Energy</p>
+                  <p className="font-medium">{client.metrics.energy} kcal</p>
+                </div>
+              )}
+              {client.metrics.protein && (
+                <div>
+                  <p className="text-gray-500">Protein</p>
+                  <p className="font-medium">{client.metrics.protein} g</p>
+                </div>
+              )}
+              {client.metrics.carbs && (
+                <div>
+                  <p className="text-gray-500">Carbs</p>
+                  <p className="font-medium">{client.metrics.carbs} g</p>
+                </div>
+              )}
             </div>
             {client.metrics.allergies && (
               <div className="mt-4">
@@ -763,6 +781,38 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                     value={editedClient.metrics?.bloodGroup ?? client.metrics.bloodGroup ?? ''}
                     onChange={(e) => updateClientMetric('bloodGroup', e.target.value || undefined)}
                     placeholder="O+"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="edit-energy">Energy (kcal)</Label>
+                  <Input
+                    id="edit-energy"
+                    type="number"
+                    value={editedClient.metrics?.energy ?? client.metrics.energy ?? ''}
+                    onChange={(e) => updateClientMetric('energy', e.target.value ? parseFloat(e.target.value) : undefined)}
+                    placeholder="2000"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-protein">Protein (g)</Label>
+                  <Input
+                    id="edit-protein"
+                    type="number"
+                    value={editedClient.metrics?.protein ?? client.metrics.protein ?? ''}
+                    onChange={(e) => updateClientMetric('protein', e.target.value ? parseFloat(e.target.value) : undefined)}
+                    placeholder="60"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-carbs">Carbs (g)</Label>
+                  <Input
+                    id="edit-carbs"
+                    type="number"
+                    value={editedClient.metrics?.carbs ?? client.metrics.carbs ?? ''}
+                    onChange={(e) => updateClientMetric('carbs', e.target.value ? parseFloat(e.target.value) : undefined)}
+                    placeholder="250"
                   />
                 </div>
               </div>

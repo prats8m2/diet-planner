@@ -17,6 +17,9 @@ export interface ClientMetrics {
   bloodGroup?: string;
   allergies?: string;
   notes?: string;
+  energy?: number;
+  protein?: number;
+  carbs?: number;
 }
 
 export interface DietPlan {
