@@ -146,32 +146,61 @@ export default function TemplatesPage() {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {templates.map((template) => (
-              <Card key={template.id} className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle>{template.name}</CardTitle>
-                      <CardDescription>
-                        {Object.keys(template.meals).length} meals saved
-                      </CardDescription>
+            {templates.map((template) => {
+              const meals = template.meals || {};
+              const mealCount = Object.values(meals).filter(
+                (meal) => meal && meal.items && meal.items.length > 0
+              ).length;
+              return (
+                <Card key={template.id} className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <CardTitle>{template.name}</CardTitle>
+                        <CardDescription>
+                          {mealCount} meal{mealCount !== 1 ? 's' : ''} configured
+                        </CardDescription>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteTemplate(template.id)}
+                      >
+                        <Trash2 className="w-4 h-4 text-red-500" />
+                      </Button>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDeleteTemplate(template.id)}
-                    >
-                      <Trash2 className="w-4 h-4 text-red-500" />
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-gray-500">
-                    Template created on {new Date(template.created_at).toLocaleDateString()}
-                  </p>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-1 mb-2">
+                      {meals.preWorkout?.items && meals.preWorkout.items.length > 0 && (
+                        <p className="text-xs text-gray-600">• Pre Workout: {meals.preWorkout.items.length} items</p>
+                      )}
+                      {meals.postWorkout?.items && meals.postWorkout.items.length > 0 && (
+                        <p className="text-xs text-gray-600">• Post Workout: {meals.postWorkout.items.length} items</p>
+                      )}
+                      {meals.breakfast?.items && meals.breakfast.items.length > 0 && (
+                        <p className="text-xs text-gray-600">• Breakfast: {meals.breakfast.items.length} items</p>
+                      )}
+                      {meals.lunch?.items && meals.lunch.items.length > 0 && (
+                        <p className="text-xs text-gray-600">• Lunch: {meals.lunch.items.length} items</p>
+                      )}
+                      {meals.snacks?.items && meals.snacks.items.length > 0 && (
+                        <p className="text-xs text-gray-600">• Snacks: {meals.snacks.items.length} items</p>
+                      )}
+                      {meals.dinner?.items && meals.dinner.items.length > 0 && (
+                        <p className="text-xs text-gray-600">• Dinner: {meals.dinner.items.length} items</p>
+                      )}
+                      {meals.afterDinner?.items && meals.afterDinner.items.length > 0 && (
+                        <p className="text-xs text-gray-600">• After Dinner: {meals.afterDinner.items.length} items</p>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-400">
+                      Created on {new Date(template.created_at).toLocaleDateString()}
+                    </p>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
       </main>

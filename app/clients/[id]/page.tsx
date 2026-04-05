@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { Client, DietPlan, Meal, WeeklyMeals, MealType, FoodItem } from "@/types";
+import type { Client, DietPlan, Meal, WeeklyMeals, MealType, FoodItem, MealTemplate } from "@/types";
 
 const MEAL_TYPES: MealType[] = ['preWorkout', 'postWorkout', 'breakfast', 'lunch', 'snacks', 'dinner', 'afterDinner'];
 const MEAL_LABELS: Record<MealType, string> = {
@@ -66,6 +66,12 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
   const [isEditingClient, setIsEditingClient] = useState(false);
   const [isSavingClient, setIsSavingClient] = useState(false);
   const [editedClient, setEditedClient] = useState<Partial<Client>>({});
+  
+  // Template state
+  const [templates, setTemplates] = useState<MealTemplate[]>([]);
+  const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
+  const [isSaveAsTemplateOpen, setIsSaveAsTemplateOpen] = useState(false);
+  const [newTemplateName, setNewTemplateName] = useState('');
 
   // Quick mode state - each meal has multiple items
   const [quickMeals, setQuickMeals] = useState<Record<MealType, { time: string; items: FoodItem[]; notes?: string }>>({
@@ -80,6 +86,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
 
   useEffect(() => {
     loadClientData();
+    loadTemplates();
   }, [clientId]);
 
   const loadClientData = async () => {
@@ -109,6 +116,57 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
       console.error('Failed to load client:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadTemplates = async () => {
+    try {
+      const response = await fetch('/api/templates');
+      if (response.ok) {
+        const data = await response.json();
+        setTemplates(data);
+      }
+    } catch (error) {
+      console.error('Failed to load templates:', error);
+    }
+  };
+
+  const applyTemplate = (template: MealTemplate) => {
+    // Apply template meals to quickMeals
+    const templateMeals = template.meals;
+    setQuickMeals({
+      preWorkout: { time: templateMeals.preWorkout?.time || '06:00', items: templateMeals.preWorkout?.items || [] },
+      postWorkout: { time: templateMeals.postWorkout?.time || '07:30', items: templateMeals.postWorkout?.items || [] },
+      breakfast: { time: templateMeals.breakfast?.time || '08:00', items: templateMeals.breakfast?.items || [] },
+      lunch: { time: templateMeals.lunch?.time || '13:00', items: templateMeals.lunch?.items || [] },
+      snacks: { time: templateMeals.snacks?.time || '16:00', items: templateMeals.snacks?.items || [] },
+      dinner: { time: templateMeals.dinner?.time || '19:00', items: templateMeals.dinner?.items || [] },
+      afterDinner: { time: templateMeals.afterDinner?.time || '21:00', items: templateMeals.afterDinner?.items || [] }
+    });
+    setIsTemplateDialogOpen(false);
+  };
+
+  const saveAsTemplate = async () => {
+    if (!newTemplateName.trim()) return;
+    
+    try {
+      const response = await fetch('/api/templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newTemplateName,
+          meals: quickMeals
+        })
+      });
+      
+      if (response.ok) {
+        setNewTemplateName('');
+        setIsSaveAsTemplateOpen(false);
+        loadTemplates();
+        alert('Template saved successfully!');
+      }
+    } catch (error) {
+      console.error('Failed to save template:', error);
     }
   };
 
@@ -451,6 +509,77 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                         </CardDescription>
                       </CardHeader>
                     </Card>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              {/* Apply Template Dialog */}
+              <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm" variant="outline">
+                    <CalendarIcon className="w-4 h-4 mr-1 sm:mr-0" />
+                    <span className="hidden sm:inline">Apply Template</span>
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Apply Template</DialogTitle>
+                  </DialogHeader>
+                  <p className="text-sm text-gray-500 mb-4">
+                    Select a template to apply to this diet plan
+                  </p>
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {templates.length === 0 ? (
+                      <p className="text-center text-gray-500 py-4">No templates available. Save a diet plan as template first.</p>
+                    ) : (
+                      templates.map((template) => (
+                        <Card
+                          key={template.id}
+                          className="cursor-pointer hover:shadow-lg transition-shadow border-2 border-transparent hover:border-emerald-500"
+                          onClick={() => applyTemplate(template)}
+                        >
+                          <CardHeader className="py-3">
+                            <CardTitle className="text-sm">{template.name}</CardTitle>
+                            <CardDescription className="text-xs">
+                              Created on {new Date(template.created_at).toLocaleDateString()}
+                            </CardDescription>
+                          </CardHeader>
+                        </Card>
+                      ))
+                    )}
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              {/* Save as Template Dialog */}
+              <Dialog open={isSaveAsTemplateOpen} onOpenChange={setIsSaveAsTemplateOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm" variant="outline">
+                    <Save className="w-4 h-4 mr-1 sm:mr-0" />
+                    <span className="hidden sm:inline">Save as Template</span>
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Save as Template</DialogTitle>
+                  </DialogHeader>
+                  <p className="text-sm text-gray-500 mb-4">
+                    Save current meals as a reusable template
+                  </p>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="templateName">Template Name</Label>
+                      <Input
+                        id="templateName"
+                        value={newTemplateName}
+                        onChange={(e) => setNewTemplateName(e.target.value)}
+                        placeholder="e.g., Weight Loss Plan"
+                        className="mt-1"
+                      />
+                    </div>
+                    <Button onClick={saveAsTemplate} className="w-full bg-emerald-600 hover:bg-emerald-700">
+                      Save Template
+                    </Button>
                   </div>
                 </DialogContent>
               </Dialog>
