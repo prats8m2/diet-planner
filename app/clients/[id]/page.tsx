@@ -220,18 +220,26 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
       });
 
       if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        const filename = exportType === 'daywise'
-          ? `${client.name.replace(/\s+/g, '-')}-diet-plan.pdf`
-          : `${client.name.replace(/\s+/g, '-')}-meal-plan.pdf`;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
+        const htmlContent = await response.text();
+
+        // Open in new window for print/save as PDF
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+          printWindow.document.write(htmlContent);
+          printWindow.document.close();
+        } else {
+          // Fallback: create a downloadable HTML file
+          const blob = new Blob([htmlContent], { type: 'text/html' });
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${client.name.replace(/\s+/g, '-')}-diet-plan.html`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(url);
+          alert('Popup blocked! File downloaded instead. Open it and use Print > Save as PDF.');
+        }
       }
     } catch (error) {
       console.error('Failed to export PDF:', error);
