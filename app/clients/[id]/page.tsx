@@ -3,14 +3,14 @@
 import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Save, Download, Plus, Trash2, Edit, Calendar as CalendarIcon, X } from "lucide-react";
+import { ArrowLeft, Save, Download, Plus, X, Edit, Calendar as CalendarIcon, ChevronLeft, ChevronRight, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import type { Client, DietPlan, Meal, WeeklyMeals, MealType, FoodItem } from "@/types";
 
 const MEAL_TYPES: MealType[] = ['breakfast', 'lunch', 'dinner', 'snacks'];
@@ -39,8 +39,8 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'quick' | 'custom'>('quick');
   const [selectedDay, setSelectedDay] = useState(0);
-  const [isQuickEditOpen, setIsQuickEditOpen] = useState(false);
-  const [selectedMealType, setSelectedMealType] = useState<MealType>('breakfast');
+  const [isEditing, setIsEditing] = useState(false);
+  const [isExportOpen, setIsExportOpen] = useState(false);
 
   // Quick mode state - each meal has multiple items
   const [quickMeals, setQuickMeals] = useState<Record<MealType, { time: string; items: FoodItem[]; notes?: string }>>({
@@ -124,7 +124,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
     }
   };
 
-  const handleQuickSave = async () => {
+  const handleSave = async () => {
     // Validate that at least some items have names
     const hasAnyItems = Object.values(quickMeals).some(meal =>
       meal.items.some(item => item.name.trim())
@@ -152,7 +152,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
     } else {
       await createDietPlan(meals);
     }
-    setIsQuickEditOpen(false);
+    setIsEditing(false);
   };
 
   const createDietPlan = async (meals: WeeklyMeals) => {
@@ -206,7 +206,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
     return dietPlan.meals[DAYS[selectedDay]] || {};
   };
 
-  const exportToPDF = async () => {
+  const exportToPDF = async (exportType: 'daywise' | 'mealwise' = 'daywise') => {
     if (!client || !dietPlan) {
       alert('Please create a diet plan first!');
       return;
@@ -216,7 +216,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
       const response = await fetch('/api/export/pdf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ client, dietPlan })
+        body: JSON.stringify({ client, dietPlan, exportType })
       });
 
       if (response.ok) {
@@ -224,7 +224,10 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${client.name.replace(/\s+/g, '-')}-diet-plan.pdf`;
+        const filename = exportType === 'daywise'
+          ? `${client.name.replace(/\s+/g, '-')}-diet-plan.pdf`
+          : `${client.name.replace(/\s+/g, '-')}-meal-plan.pdf`;
+        a.download = filename;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -259,28 +262,6 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
 
   const currentDayMeals = getCurrentDayMeals();
 
-  // Helper to render food items list
-  const renderFoodItems = (items: FoodItem[], mealType: MealType) => {
-    if (!items || items.length === 0) return null;
-
-    return (
-      <div className="space-y-2">
-        {items.map((item, index) => (
-          <div key={index} className="flex items-start gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
-            <span className="text-emerald-600 font-medium">•</span>
-            <div className="flex-1">
-              <p className="font-medium">{item.name}</p>
-              <div className="flex flex-wrap gap-2 mt-1 text-sm text-gray-600 dark:text-gray-400">
-                {item.portions && <span>📊 {item.portions}</span>}
-                {item.calories && <span>🔥 {item.calories} cal</span>}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  };
-
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
@@ -301,18 +282,79 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
               </div>
             </div>
             <div className="flex gap-2">
-              <Button
-                onClick={() => setIsQuickEditOpen(true)}
-                size="sm"
-                variant="outline"
-              >
-                <Edit className="w-4 h-4 mr-1 sm:mr-0" />
-                <span className="hidden sm:inline">Quick Edit</span>
-              </Button>
-              <Button onClick={exportToPDF} size="sm" className="bg-emerald-600 hover:bg-emerald-700">
-                <Download className="w-4 h-4 mr-1 sm:mr-0" />
-                <span className="hidden sm:inline">Export</span>
-              </Button>
+              {viewMode === 'quick' && (
+                <Button
+                  onClick={() => isEditing ? handleSave() : setIsEditing(true)}
+                  size="sm"
+                  variant={isEditing ? "default" : "outline"}
+                  className={isEditing ? "bg-emerald-600 hover:bg-emerald-700" : ""}
+                >
+                  {isEditing ? (
+                    <>
+                      <Save className="w-4 h-4 mr-1" />
+                      Save
+                    </>
+                  ) : (
+                    <>
+                      <Edit className="w-4 h-4 mr-1" />
+                      Edit
+                    </>
+                  )}
+                </Button>
+              )}
+              <Dialog open={isExportOpen} onOpenChange={setIsExportOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700">
+                    <Download className="w-4 h-4 mr-1 sm:mr-0" />
+                    <span className="hidden sm:inline">Export</span>
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Export Diet Plan</DialogTitle>
+                  </DialogHeader>
+                  <p className="text-sm text-gray-500 mb-4">
+                    Choose how you want to export the diet plan
+                  </p>
+                  <div className="space-y-4 py-4">
+                    <Card
+                      className="cursor-pointer hover:shadow-lg transition-shadow border-2 border-transparent hover:border-emerald-500"
+                      onClick={() => {
+                        exportToPDF('daywise');
+                        setIsExportOpen(false);
+                      }}
+                    >
+                      <CardHeader>
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <FileText className="w-5 h-5 text-emerald-600" />
+                          Day-wise Export
+                        </CardTitle>
+                        <CardDescription>
+                          Export by days (Monday, Tuesday, Wednesday...) - Best for weekly plans
+                        </CardDescription>
+                      </CardHeader>
+                    </Card>
+
+                    <Card
+                      className="cursor-pointer hover:shadow-lg transition-shadow border-2 border-transparent hover:border-blue-500"
+                      onClick={() => {
+                        exportToPDF('mealwise');
+                        setIsExportOpen(false);
+                      }}
+                    >
+                      <CardHeader>
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <CalendarIcon className="w-5 h-5 text-blue-600" />
+                          Meal-wise Export
+                        </CardTitle>
+                        <CardDescription>
+                          Export by meals (All breakfasts, all lunches...) - Best for meal templates
+                        </CardDescription>
+                      </CardHeader>
+                    </Card>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
         </div>
@@ -341,46 +383,150 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
         {/* Quick Mode */}
         {viewMode === 'quick' && (
           <>
-            <div className="space-y-4">
-              {MEAL_TYPES.map((mealType) => {
-                const meal = quickMeals[mealType];
-                const hasItems = meal.items.some(item => item.name.trim());
-
-                return (
-                  <Card key={mealType} className="hover:shadow-md transition-shadow">
+            {isEditing ? (
+              // Editing Mode - All meal forms on one page
+              <div className="space-y-6">
+                {MEAL_TYPES.map((mealType) => (
+                  <Card key={mealType} className="border-2 border-emerald-200 dark:border-emerald-800">
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between">
-                        <CardTitle className="text-lg flex items-center gap-2">
-                          {MEAL_LABELS[mealType]}
-                          <span className="text-sm font-normal text-gray-500">
-                            {meal.time}
-                          </span>
-                        </CardTitle>
+                        <CardTitle className="text-lg">{MEAL_LABELS[mealType]}</CardTitle>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="time"
+                            value={quickMeals[mealType].time}
+                            onChange={(e) => setQuickMeals({
+                              ...quickMeals,
+                              [mealType]: { ...quickMeals[mealType], time: e.target.value }
+                            })}
+                            className="w-32"
+                          />
+                        </div>
                       </div>
                     </CardHeader>
-                    <CardContent>
-                      {hasItems ? (
-                        renderFoodItems(meal.items, mealType)
-                      ) : (
-                        <p className="text-gray-400 text-sm">No items added. Click Quick Edit to add {MEAL_LABELS[mealType].toLowerCase()} items.</p>
-                      )}
+                    <CardContent className="space-y-3">
+                      {quickMeals[mealType].items.map((item, index) => (
+                        <div key={index} className="flex gap-2 items-start p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                          <div className="flex-1 grid grid-cols-1 sm:grid-cols-4 gap-2">
+                            <Input
+                              placeholder="Food item name"
+                              value={item.name}
+                              onChange={(e) => updateFoodItem(mealType, index, 'name', e.target.value)}
+                              className="sm:col-span-2"
+                              autoFocus={!item.name}
+                            />
+                            <Input
+                              placeholder="Portion"
+                              value={item.portions || ''}
+                              onChange={(e) => updateFoodItem(mealType, index, 'portions', e.target.value)}
+                            />
+                            <Input
+                              type="number"
+                              placeholder="Calories"
+                              value={item.calories || ''}
+                              onChange={(e) => updateFoodItem(mealType, index, 'calories', e.target.value ? parseInt(e.target.value) : undefined)}
+                            />
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeFoodItem(mealType, index)}
+                            className="mt-1 text-red-500 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => addFoodItem(mealType)}
+                        className="w-full"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Item
+                      </Button>
+                      <div>
+                        <Label htmlFor={`${mealType}-notes`}>Notes (optional)</Label>
+                        <Textarea
+                          id={`${mealType}-notes`}
+                          value={quickMeals[mealType].notes || ''}
+                          onChange={(e) => setQuickMeals({
+                            ...quickMeals,
+                            [mealType]: { ...quickMeals[mealType], notes: e.target.value }
+                          })}
+                          placeholder="Any special instructions..."
+                          className="mt-1"
+                          rows={2}
+                        />
+                      </div>
                     </CardContent>
                   </Card>
-                );
-              })}
-            </div>
+                ))}
+              </div>
+            ) : (
+              // View Mode - Display meals with Edit button
+              <div className="space-y-4">
+                {MEAL_TYPES.map((mealType) => {
+                  const meal = quickMeals[mealType];
+                  const hasItems = meal.items.some(item => item.name.trim());
 
-            {/* Save Button */}
-            {!dietPlan ? (
+                  return (
+                    <Card key={mealType} className="hover:shadow-md transition-shadow">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-lg flex items-center gap-2">
+                            {MEAL_LABELS[mealType]}
+                            <span className="text-sm font-normal text-gray-500">
+                              {meal.time}
+                            </span>
+                          </CardTitle>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        {hasItems ? (
+                          <div className="space-y-2">
+                            {meal.items.filter(item => item.name.trim()).map((item, index) => (
+                              <div key={index} className="flex items-start gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                <span className="text-emerald-600 font-medium mt-1">•</span>
+                                <div className="flex-1">
+                                  <p className="font-medium">{item.name}</p>
+                                  <div className="flex flex-wrap gap-3 mt-1 text-sm text-gray-600 dark:text-gray-400">
+                                    {item.portions && <span>📊 {item.portions}</span>}
+                                    {item.calories && <span>🔥 {item.calories} cal</span>}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                            {meal.notes && (
+                              <p className="text-sm text-gray-500 mt-2 italic">📝 {meal.notes}</p>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="text-gray-400 text-sm">No items added. Click Edit to add {MEAL_LABELS[mealType].toLowerCase()} items.</p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+
+            {!isEditing && !dietPlan && (
               <div className="mt-6 text-center">
-                <Button onClick={() => setIsQuickEditOpen(true)} size="lg" className="bg-emerald-600 hover:bg-emerald-700">
+                <Button onClick={() => setIsEditing(true)} size="lg" className="bg-emerald-600 hover:bg-emerald-700">
                   <Plus className="w-5 h-5 mr-2" />
                   Add Meal Items
                 </Button>
+                <p className="text-sm text-gray-500 mt-2">Click to add food items for each meal</p>
               </div>
-            ) : (
+            )}
+
+            {!isEditing && dietPlan && (
               <div className="mt-6 text-center">
-                <Button onClick={() => setIsQuickEditOpen(true)} size="lg" variant="outline" className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                <Button onClick={() => setIsEditing(true)} size="lg" variant="outline" className="bg-emerald-600 hover:bg-emerald-700 text-white">
                   <Edit className="w-5 h-5 mr-2" />
                   Edit Meal Items
                 </Button>
@@ -400,14 +546,14 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                     onClick={() => setSelectedDay((selectedDay - 1 + 7) % 7)}
                     className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
                   >
-                    ←
+                    <ChevronLeft className="w-5 h-5" />
                   </button>
                   <h2 className="text-lg font-semibold">{DAYS[selectedDay]}</h2>
                   <button
                     onClick={() => setSelectedDay((selectedDay + 1) % 7)}
                     className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
                   >
-                    →
+                    <ChevronRight className="w-5 h-5" />
                   </button>
                 </div>
               </CardContent>
@@ -426,7 +572,20 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                     </CardHeader>
                     <CardContent>
                       {meal?.items && meal.items.length > 0 ? (
-                        renderFoodItems(meal.items, mealType)
+                        <div className="space-y-2">
+                          {meal.items.map((item, index) => (
+                            <div key={index} className="flex items-start gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                              <span className="text-emerald-600 font-medium mt-1">•</span>
+                              <div className="flex-1">
+                                <p className="font-medium">{item.name}</p>
+                                <div className="flex flex-wrap gap-3 mt-1 text-sm text-gray-600 dark:text-gray-400">
+                                  {item.portions && <span>📊 {item.portions}</span>}
+                                  {item.calories && <span>🔥 {item.calories} cal</span>}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       ) : (
                         <p className="text-gray-400 text-sm">No items for {MEAL_LABELS[mealType].toLowerCase()}</p>
                       )}
@@ -485,111 +644,6 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
           </CardContent>
         </Card>
       </main>
-
-      {/* Quick Edit Dialog */}
-      <Dialog open={isQuickEditOpen} onOpenChange={setIsQuickEditOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit Meal Plan</DialogTitle>
-            <DialogDescription>
-              Add multiple food items for each meal time. This applies to all days.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-6 py-4">
-            {MEAL_TYPES.map((mealType) => (
-              <div key={mealType} className="space-y-3 pb-4 border-b">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-lg">{MEAL_LABELS[mealType]}</h3>
-                  <div className="flex items-center gap-2">
-                    <Label htmlFor={`${mealType}-time`} className="text-sm">Time:</Label>
-                    <Input
-                      id={`${mealType}-time`}
-                      type="time"
-                      value={quickMeals[mealType].time}
-                      onChange={(e) => setQuickMeals({
-                        ...quickMeals,
-                        [mealType]: { ...quickMeals[mealType], time: e.target.value }
-                      })}
-                      className="w-32"
-                    />
-                  </div>
-                </div>
-
-                {/* Food Items List */}
-                <div className="space-y-2">
-                  {quickMeals[mealType].items.map((item, index) => (
-                    <div key={index} className="flex gap-2 items-start">
-                      <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2">
-                        <Input
-                          placeholder="Food item name"
-                          value={item.name}
-                          onChange={(e) => updateFoodItem(mealType, index, 'name', e.target.value)}
-                          className="sm:col-span-2"
-                        />
-                        <Input
-                          placeholder="Portion"
-                          value={item.portions || ''}
-                          onChange={(e) => updateFoodItem(mealType, index, 'portions', e.target.value)}
-                        />
-                        <Input
-                          type="number"
-                          placeholder="Calories"
-                          value={item.calories || ''}
-                          onChange={(e) => updateFoodItem(mealType, index, 'calories', e.target.value ? parseInt(e.target.value) : undefined)}
-                        />
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeFoodItem(mealType, index)}
-                        className="mt-1"
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => addFoodItem(mealType)}
-                  className="w-full"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Food Item
-                </Button>
-
-                <div>
-                  <Label htmlFor={`${mealType}-notes`}>Notes (optional)</Label>
-                  <Textarea
-                    id={`${mealType}-notes`}
-                    value={quickMeals[mealType].notes || ''}
-                    onChange={(e) => setQuickMeals({
-                      ...quickMeals,
-                      [mealType]: { ...quickMeals[mealType], notes: e.target.value }
-                    })}
-                    placeholder="Any special instructions..."
-                    className="mt-1"
-                    rows={2}
-                  />
-                </div>
-              </div>
-            ))}
-
-            <Button
-              onClick={handleQuickSave}
-              className="w-full bg-emerald-600 hover:bg-emerald-700"
-              size="lg"
-            >
-              <Save className="w-5 h-5 mr-2" />
-              Save for All Days
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
