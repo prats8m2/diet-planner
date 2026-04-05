@@ -14,6 +14,15 @@ interface DayMeals {
   snacks?: Meal;
 }
 
+function formatTime(time?: string): string {
+  if (!time) return '';
+  const [hours, minutes] = time.split(':');
+  const hour = parseInt(hours, 10);
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  const formattedHour = hour % 12 || 12;
+  return `${formattedHour}:${minutes} ${ampm}`;
+}
+
 export async function POST(request: Request) {
   try {
     const { client, dietPlan, exportType = 'daywise' } = await request.json();
@@ -536,7 +545,7 @@ function generateDaywiseContent(dietPlan: DietPlan, days: string[], mealLabels: 
           <div class="meal-card ${mealType}">
             <div class="meal-header">
               <div class="meal-title">${mealIcons[mealType]} ${mealLabels[mealType]}</div>
-              ${meal.time ? `<div class="meal-time">${meal.time}</div>` : ''}
+              ${meal.time ? `<div class="meal-time">${formatTime(meal.time)}</div>` : ''}
             </div>
             <div class="food-list">
               ${meal.items.map(item => `
@@ -594,7 +603,7 @@ function generateMealwiseContent(dietPlan: DietPlan, days: string[], mealLabels:
         <div class="meal-card ${mealType}">
           ${group.time ? `
             <div class="meal-header">
-              <div class="meal-time">${group.time}</div>
+              <div class="meal-time">${formatTime(group.time)}</div>
             </div>
           ` : ''}
           <div class="food-list">

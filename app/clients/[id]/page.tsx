@@ -41,6 +41,8 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
   const [selectedDay, setSelectedDay] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
   const [isExportOpen, setIsExportOpen] = useState(false);
+  const [isEditingClient, setIsEditingClient] = useState(false);
+  const [editedClient, setEditedClient] = useState<Partial<Client>>({});
 
   // Quick mode state - each meal has multiple items
   const [quickMeals, setQuickMeals] = useState<Record<MealType, { time: string; items: FoodItem[]; notes?: string }>>({
@@ -245,6 +247,48 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
       console.error('Failed to export PDF:', error);
       alert('Failed to export PDF. Please try again.');
     }
+  };
+
+  const handleEditClient = () => {
+    setEditedClient({
+      name: client.name,
+      metrics: { ...client.metrics }
+    });
+    setIsEditingClient(true);
+  };
+
+  const handleSaveClient = async () => {
+    try {
+      const response = await fetch(`/api/clients/${clientId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: editedClient.name || client.name,
+          metrics: editedClient.metrics || client.metrics
+        })
+      });
+
+      if (response.ok) {
+        const updatedClient = await response.json();
+        setClient(updatedClient);
+        setIsEditingClient(false);
+      } else {
+        alert('Failed to update client. Please try again.');
+      }
+    } catch (error) {
+      console.error('Failed to update client:', error);
+      alert('Failed to update client. Please try again.');
+    }
+  };
+
+  const updateClientMetric = (field: string, value: string | number | undefined) => {
+    setEditedClient(prev => ({
+      ...prev,
+      metrics: {
+        ...prev.metrics,
+        [field]: value
+      }
+    }));
   };
 
   if (loading) {
@@ -608,7 +652,18 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
         {/* Client Info Card */}
         <Card className="mt-6">
           <CardHeader>
-            <CardTitle>Client Information</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>Client Information</CardTitle>
+              <Button
+                onClick={handleEditClient}
+                size="sm"
+                variant="outline"
+                className="gap-1"
+              >
+                <Edit className="w-4 h-4" />
+                Edit
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-4 text-sm">
@@ -651,6 +706,107 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
             )}
           </CardContent>
         </Card>
+
+        {/* Edit Client Dialog */}
+        <Dialog open={isEditingClient} onOpenChange={setIsEditingClient}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Edit Client Details</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="edit-name">Name</Label>
+                <Input
+                  id="edit-name"
+                  value={editedClient.name || client.name}
+                  onChange={(e) => setEditedClient(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Client name"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-weight">Weight (kg)</Label>
+                  <Input
+                    id="edit-weight"
+                    type="number"
+                    value={editedClient.metrics?.weight ?? client.metrics.weight ?? ''}
+                    onChange={(e) => updateClientMetric('weight', e.target.value ? parseFloat(e.target.value) : undefined)}
+                    placeholder="70"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-height">Height (cm)</Label>
+                  <Input
+                    id="edit-height"
+                    type="number"
+                    value={editedClient.metrics?.height ?? client.metrics.height ?? ''}
+                    onChange={(e) => updateClientMetric('height', e.target.value ? parseFloat(e.target.value) : undefined)}
+                    placeholder="170"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-age">Age</Label>
+                  <Input
+                    id="edit-age"
+                    type="number"
+                    value={editedClient.metrics?.age ?? client.metrics.age ?? ''}
+                    onChange={(e) => updateClientMetric('age', e.target.value ? parseInt(e.target.value) : undefined)}
+                    placeholder="30"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-bloodGroup">Blood Group</Label>
+                  <Input
+                    id="edit-bloodGroup"
+                    value={editedClient.metrics?.bloodGroup ?? client.metrics.bloodGroup ?? ''}
+                    onChange={(e) => updateClientMetric('bloodGroup', e.target.value || undefined)}
+                    placeholder="O+"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="edit-goal">Goal</Label>
+                <Input
+                  id="edit-goal"
+                  value={editedClient.metrics?.goal ?? client.metrics.goal ?? ''}
+                  onChange={(e) => updateClientMetric('goal', e.target.value || undefined)}
+                  placeholder="Weight loss, Muscle gain, etc."
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-allergies">Allergies</Label>
+                <Textarea
+                  id="edit-allergies"
+                  value={editedClient.metrics?.allergies ?? client.metrics.allergies ?? ''}
+                  onChange={(e) => updateClientMetric('allergies', e.target.value || undefined)}
+                  placeholder="Any allergies or dietary restrictions"
+                  rows={2}
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-notes">Notes</Label>
+                <Textarea
+                  id="edit-notes"
+                  value={editedClient.metrics?.notes ?? client.metrics.notes ?? ''}
+                  onChange={(e) => updateClientMetric('notes', e.target.value || undefined)}
+                  placeholder="Additional notes"
+                  rows={2}
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 justify-end mt-4">
+              <Button variant="outline" onClick={() => setIsEditingClient(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSaveClient} className="bg-emerald-600 hover:bg-emerald-700">
+                <Save className="w-4 h-4 mr-1" />
+                Save Changes
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );

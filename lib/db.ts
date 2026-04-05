@@ -117,7 +117,7 @@ export const clientOps = {
   },
 
   update: (id: number, name: string, metrics: ClientMetrics): boolean => {
-    const result = db.prepare('UPDATE clients SET name = ?, metrics = ? WHERE id = ?').run(name, JSON.stringify(metrics));
+    const result = db.prepare('UPDATE clients SET name = ?, metrics = ? WHERE id = ?').run(name, JSON.stringify(metrics), id);
     return result.changes > 0;
   },
 
