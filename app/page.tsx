@@ -2,13 +2,16 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Users, Plus, User, Clock, TrendingUp, ChevronRight } from "lucide-react";
+import { Users, Plus, User, Clock, TrendingUp, ChevronRight, LogOut } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import type { Client } from "@/types";
 
 export default function Home() {
+  const { user, logout } = useAuth();
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -32,7 +35,8 @@ export default function Home() {
   const recentClients = clients.slice(0, 6);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-emerald-50/50 to-teal-50/40 dark:from-gray-900 dark:via-emerald-950/20 dark:to-teal-950/20">
+    <ProtectedRoute>
+      <div className="min-h-screen bg-gradient-to-br from-white via-emerald-50/50 to-teal-50/40 dark:from-gray-900 dark:via-emerald-950/20 dark:to-teal-950/20">
       {/* Header */}
       <header className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-md shadow-sm sticky top-0 z-10 border-b border-emerald-100 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -49,7 +53,7 @@ export default function Home() {
               </div>
               <div className="hidden sm:block">
                 <h1 className="text-lg font-bold text-gray-900 dark:text-white">Taste of Health</h1>
-                <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Personalized Diet Plans</p>
+                <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">{user?.full_name || 'Personalized Diet Plans'}</p>
               </div>
             </Link>
             <div className="flex items-center gap-2">
@@ -60,6 +64,15 @@ export default function Home() {
                   <span className="sm:hidden">Add</span>
                 </Button>
               </Link>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={logout}
+                className="hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
+                title="Logout"
+              >
+                <LogOut className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              </Button>
             </div>
           </div>
         </div>
@@ -264,5 +277,6 @@ export default function Home() {
       {/* Add padding for bottom nav */}
       <div className="h-16" />
     </div>
+    </ProtectedRoute>
   );
 }

@@ -15,11 +15,23 @@ async function initializeDatabase() {
   if (dbInitialized) return;
   
   await db.execute(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT NOT NULL UNIQUE,
+      pin TEXT NOT NULL,
+      full_name TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  await db.execute(`
     CREATE TABLE IF NOT EXISTS clients (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
       metrics TEXT DEFAULT '{}',
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      dietitian_id INTEGER,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (dietitian_id) REFERENCES users(id) ON DELETE SET NULL
     )
   `);
 
@@ -29,6 +41,7 @@ async function initializeDatabase() {
       client_id INTEGER NOT NULL,
       week_start TEXT NOT NULL,
       meals TEXT NOT NULL DEFAULT '{}',
+      is_active BOOLEAN DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
     )
@@ -98,11 +111,98 @@ async function ensureDb() {
   await initializeDatabase();
 }
 
+// User (Dietitian) operations
+export const userOps = {
+  getAll: async () => {
+    await ensureDb();
+    const result = await db.execute('SELECT id, username, full_name, created_at FROM users ORDER BY full_name ASC');
+    return result.rows.map(row => ({
+      id: row.id as number,
+      username: row.username as string,
+      full_name: row.full_name as string,
+      created_at: row.created_at as string
+    }));
+  },
+
+  getById: async (id: number) => {
+    await ensureDb();
+    const result = await db.execute({ sql: 'SELECT id, username, full_name, created_at FROM users WHERE id = ?', args: [id] });
+    if (result.rows.length === 0) return null;
+    const row = result.rows[0];
+    return {
+      id: row.id as number,
+      username: row.username as string,
+      full_name: row.full_name as string,
+      created_at: row.created_at as string
+    };
+  },
+
+  authenticate: async (username: string, pin: string): Promise<{ id: number; username: string; full_name: string } | null> => {
+    await ensureDb();
+    const result = await db.execute({
+      sql: 'SELECT id, username, full_name FROM users WHERE username = ? AND pin = ?',
+      args: [username, pin]
+    });
+    if (result.rows.length === 0) return null;
+    const row = result.rows[0];
+    return {
+      id: row.id as number,
+      username: row.username as string,
+      full_name: row.full_name as string
+    };
+  },
+
+  create: async (username: string, pin: string, fullName: string): Promise<{ id: number; username: string; full_name: string }> => {
+    await ensureDb();
+    const result = await db.execute({
+      sql: 'INSERT INTO users (username, pin, full_name) VALUES (?, ?, ?)',
+      args: [username, pin, fullName]
+    });
+    const id = Number(result.lastInsertRowid);
+    return { id, username, full_name: fullName };
+  },
+
+  update: async (id: number, updates: { username?: string; pin?: string; full_name?: string }): Promise<boolean> => {
+    await ensureDb();
+    const fields: string[] = [];
+    const values: (string | number)[] = [];
+
+    if (updates.username !== undefined) { fields.push('username = ?'); values.push(updates.username); }
+    if (updates.pin !== undefined) { fields.push('pin = ?'); values.push(updates.pin); }
+    if (updates.full_name !== undefined) { fields.push('full_name = ?'); values.push(updates.full_name); }
+
+    if (fields.length === 0) return false;
+
+    values.push(id);
+    const result = await db.execute({
+      sql: `UPDATE users SET ${fields.join(', ')} WHERE id = ?`,
+      args: values
+    });
+    return result.rowsAffected > 0;
+  },
+
+  delete: async (id: number): Promise<boolean> => {
+    await ensureDb();
+    const result = await db.execute({ sql: 'DELETE FROM users WHERE id = ?', args: [id] });
+    return result.rowsAffected > 0;
+  }
+};
+
 // Client operations
 export const clientOps = {
-  getAll: async (): Promise<Client[]> => {
+  getAll: async (dietitianId?: number): Promise<Client[]> => {
     await ensureDb();
-    const result = await db.execute('SELECT * FROM clients ORDER BY created_at DESC');
+    let sql = 'SELECT * FROM clients';
+    const args: (number | string)[] = [];
+
+    if (dietitianId) {
+      sql += ' WHERE dietitian_id = ?';
+      args.push(dietitianId);
+    }
+
+    sql += ' ORDER BY created_at DESC';
+
+    const result = await db.execute({ sql, args });
     return result.rows.map(row => ({
       id: row.id as number,
       name: row.name as string,
@@ -124,11 +224,11 @@ export const clientOps = {
     };
   },
 
-  create: async (name: string, metrics: ClientMetrics = {}): Promise<Client> => {
+  create: async (name: string, metrics: ClientMetrics = {}, dietitianId?: number): Promise<Client> => {
     await ensureDb();
     const result = await db.execute({
-      sql: 'INSERT INTO clients (name, metrics) VALUES (?, ?)',
-      args: [name, JSON.stringify(metrics)]
+      sql: 'INSERT INTO clients (name, metrics, dietitian_id) VALUES (?, ?, ?)',
+      args: [name, JSON.stringify(metrics), dietitianId || null]
     });
     return (await clientOps.getById(Number(result.lastInsertRowid)))!;
   },
@@ -160,7 +260,7 @@ export const dietPlanOps = {
       sql += ' AND week_start = ?';
       args.push(weekStart);
     }
-    sql += ' ORDER BY week_start DESC';
+    sql += ' ORDER BY created_at DESC';
 
     const result = await db.execute({ sql, args });
     return result.rows.map(row => ({
@@ -172,10 +272,27 @@ export const dietPlanOps = {
     }));
   },
 
+  getActiveByClient: async (clientId: number): Promise<DietPlan | null> => {
+    await ensureDb();
+    const result = await db.execute({
+      sql: 'SELECT * FROM diet_plans WHERE client_id = ? AND is_active = 1',
+      args: [clientId]
+    });
+    if (result.rows.length === 0) return null;
+    const row = result.rows[0];
+    return {
+      id: row.id as number,
+      client_id: row.client_id as number,
+      week_start: row.week_start as string,
+      meals: JSON.parse((row.meals as string) || '{}'),
+      created_at: row.created_at as string
+    };
+  },
+
   getLatestByClient: async (clientId: number): Promise<DietPlan | null> => {
     await ensureDb();
     const result = await db.execute({
-      sql: 'SELECT * FROM diet_plans WHERE client_id = ? ORDER BY week_start DESC LIMIT 1',
+      sql: 'SELECT * FROM diet_plans WHERE client_id = ? ORDER BY created_at DESC LIMIT 1',
       args: [clientId]
     });
     if (result.rows.length === 0) return null;
@@ -203,6 +320,30 @@ export const dietPlanOps = {
     const result = await db.execute({
       sql: 'UPDATE diet_plans SET meals = ? WHERE id = ?',
       args: [JSON.stringify(meals), id]
+    });
+    return result.rowsAffected > 0;
+  },
+
+  activatePlan: async (id: number, clientId: number): Promise<boolean> => {
+    await ensureDb();
+    // First deactivate all plans for this client
+    await db.execute({
+      sql: 'UPDATE diet_plans SET is_active = 0 WHERE client_id = ?',
+      args: [clientId]
+    });
+    // Then activate the selected plan
+    const result = await db.execute({
+      sql: 'UPDATE diet_plans SET is_active = 1 WHERE id = ?',
+      args: [id]
+    });
+    return result.rowsAffected > 0;
+  },
+
+  deactivatePlan: async (id: number): Promise<boolean> => {
+    await ensureDb();
+    const result = await db.execute({
+      sql: 'UPDATE diet_plans SET is_active = 0 WHERE id = ?',
+      args: [id]
     });
     return result.rowsAffected > 0;
   },

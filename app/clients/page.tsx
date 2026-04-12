@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Plus, Search, User, MoreVertical } from "lucide-react";
+import { Plus, Search, User, MoreVertical, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +12,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAuth } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import type { Client } from "@/types";
 
 // BMI Calculation Helper
@@ -22,6 +24,7 @@ const calculateBMI = (weight: number, height: number): number => {
 };
 
 function ClientsPageContent() {
+  const { user, logout } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [clients, setClients] = useState<Client[]>([]);
@@ -160,18 +163,31 @@ function ClientsPageContent() {
                     className="object-contain"
                   />
                 </div>
-                <h1 className="text-xl font-bold text-gray-900 dark:text-white">Clients</h1>
+                <div>
+                  <h1 className="text-xl font-bold text-gray-900 dark:text-white">Clients</h1>
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400">{user?.full_name || 'Dietitian'}</p>
+                </div>
               </div>
             </div>
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button size="sm" className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600">
-                  <Plus className="w-4 h-4 mr-1" />
-                  <span className="hidden sm:inline">Add Client</span>
-                  <span className="sm:hidden">Add</span>
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={logout}
+                className="hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
+                title="Logout"
+              >
+                <LogOut className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              </Button>
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm" className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600">
+                    <Plus className="w-4 h-4 mr-1" />
+                    <span className="hidden sm:inline">Add Client</span>
+                    <span className="sm:hidden">Add</span>
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Add New Client</DialogTitle>
                   <DialogDescription>
@@ -473,7 +489,9 @@ function ClientsPageContent() {
 export default function ClientsPage() {
   return (
     <Suspense fallback={<div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center"><p className="text-gray-500">Loading...</p></div>}>
-      <ClientsPageContent />
+      <ProtectedRoute>
+        <ClientsPageContent />
+      </ProtectedRoute>
     </Suspense>
   );
 }

@@ -3,15 +3,18 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Plus, Trash2, Calendar } from "lucide-react";
+import { Plus, Trash2, Calendar, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useAuth } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import type { MealTemplate } from "@/types";
 
 export default function TemplatesPage() {
+  const { user, logout } = useAuth();
   const [templates, setTemplates] = useState<MealTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -75,7 +78,8 @@ export default function TemplatesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-emerald-50/50 to-teal-50/40 dark:from-gray-900 dark:via-emerald-950/20 dark:to-teal-950/20">
+    <ProtectedRoute>
+      <div className="min-h-screen bg-gradient-to-br from-white via-emerald-50/50 to-teal-50/40 dark:from-gray-900 dark:via-emerald-950/20 dark:to-teal-950/20">
       {/* Header */}
       <header className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-md shadow-sm sticky top-0 z-10 border-b border-emerald-100 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -97,17 +101,30 @@ export default function TemplatesPage() {
                     className="object-contain"
                   />
                 </div>
-                <h1 className="text-xl font-bold text-gray-900 dark:text-white">Meal Templates</h1>
+                <div>
+                  <h1 className="text-xl font-bold text-gray-900 dark:text-white">Meal Templates</h1>
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400">{user?.full_name || 'Dietitian'}</p>
+                </div>
               </div>
             </div>
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button size="sm" className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600">
-                  <Plus className="w-4 h-4 mr-1" />
-                  <span className="hidden sm:inline">New Template</span>
-                  <span className="sm:hidden">New</span>
-                </Button>
-              </DialogTrigger>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={logout}
+                className="hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
+                title="Logout"
+              >
+                <LogOut className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              </Button>
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm" className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600">
+                    <Plus className="w-4 h-4 mr-1" />
+                    <span className="hidden sm:inline">New Template</span>
+                    <span className="sm:hidden">New</span>
+                  </Button>
+                </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Create New Template</DialogTitle>
@@ -263,6 +280,7 @@ export default function TemplatesPage() {
 
       {/* Add padding for bottom nav */}
       <div className="h-16" />
-    </div>
+      </div>
+    </ProtectedRoute>
   );
 }
