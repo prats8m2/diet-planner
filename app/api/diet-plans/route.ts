@@ -14,7 +14,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const newPlan = dietPlanOps.create(clientId, weekStart, meals);
+    const newPlan = await dietPlanOps.create(clientId, weekStart, meals);
     return NextResponse.json(newPlan, { status: 201 });
   } catch (error) {
     console.error('Error creating diet plan:', error);

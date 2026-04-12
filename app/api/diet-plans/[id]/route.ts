@@ -23,7 +23,7 @@ export async function PUT(
       );
     }
 
-    const updated = dietPlanOps.update(id, meals);
+    const updated = await dietPlanOps.update(id, meals);
     if (!updated) {
       return NextResponse.json(
         { error: 'Diet plan not found' },
@@ -31,7 +31,7 @@ export async function PUT(
       );
     }
 
-    const plan = dietPlanOps.getById(id);
+    const plan = await dietPlanOps.getById(id);
     return NextResponse.json(plan);
   } catch (error) {
     console.error('Error updating diet plan:', error);
@@ -54,7 +54,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Invalid diet plan ID' }, { status: 400 });
     }
 
-    const deleted = dietPlanOps.delete(id);
+    const deleted = await dietPlanOps.delete(id);
     if (!deleted) {
       return NextResponse.json(
         { error: 'Diet plan not found' },

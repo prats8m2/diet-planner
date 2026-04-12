@@ -211,6 +211,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
       case 'lunch': return '1 plate';
       case 'dinner': return '1 plate';
       case 'snacks': return '1 serving';
+      default: return '1 serving';
     }
   };
 
@@ -338,6 +339,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
   };
 
   const handleEditClient = () => {
+    if (!client) return;
     setEditedClient({
       name: client.name,
       metrics: { ...client.metrics }
@@ -346,6 +348,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
   };
 
   const handleSaveClient = async () => {
+    if (!client) return;
     setIsSavingClient(true);
     try {
       const response = await fetch(`/api/clients/${clientId}`, {
@@ -381,8 +384,8 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
 
       // Auto-calculate BMI when weight or height changes
       if (field === 'weight' || field === 'height') {
-        const weight = field === 'weight' ? (value as number) : (prev.metrics?.weight ?? client.metrics?.weight);
-        const height = field === 'height' ? (value as number) : (prev.metrics?.height ?? client.metrics?.height);
+        const weight = field === 'weight' ? (value as number) : (prev.metrics?.weight ?? client?.metrics?.weight);
+        const height = field === 'height' ? (value as number) : (prev.metrics?.height ?? client?.metrics?.height);
 
         if (weight && height) {
           updatedMetrics.bmi = calculateBMI(weight as number, height as number);

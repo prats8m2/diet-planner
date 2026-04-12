@@ -13,13 +13,13 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid client ID' }, { status: 400 });
     }
 
-    const client = clientOps.getById(id);
+    const client = await clientOps.getById(id);
     if (!client) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 });
     }
 
     // Get the latest diet plan for this client
-    const dietPlan = dietPlanOps.getLatestByClient(id);
+    const dietPlan = await dietPlanOps.getLatestByClient(id);
 
     return NextResponse.json({ client, dietPlan });
   } catch (error) {
@@ -43,12 +43,12 @@ export async function PUT(
     const body = await request.json();
     const { name, metrics } = body;
 
-    const updated = clientOps.update(id, name, metrics);
+    const updated = await clientOps.update(id, name, metrics);
     if (!updated) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 });
     }
 
-    const client = clientOps.getById(id);
+    const client = await clientOps.getById(id);
     return NextResponse.json(client);
   } catch (error) {
     console.error('Error updating client:', error);
@@ -68,7 +68,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Invalid client ID' }, { status: 400 });
     }
 
-    const deleted = clientOps.delete(id);
+    const deleted = await clientOps.delete(id);
     if (!deleted) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 });
     }

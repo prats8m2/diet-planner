@@ -23,7 +23,7 @@ export async function PUT(
       );
     }
 
-    const updated = templateOps.update(id, name, meals);
+    const updated = await templateOps.update(id, name, meals);
     if (!updated) {
       return NextResponse.json(
         { error: 'Template not found' },
@@ -31,7 +31,7 @@ export async function PUT(
       );
     }
 
-    const template = templateOps.getById(id);
+    const template = await templateOps.getById(id);
     return NextResponse.json(template);
   } catch (error) {
     console.error('Error updating template:', error);
@@ -54,7 +54,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Invalid template ID' }, { status: 400 });
     }
 
-    const deleted = templateOps.delete(id);
+    const deleted = await templateOps.delete(id);
     if (!deleted) {
       return NextResponse.json(
         { error: 'Template not found' },

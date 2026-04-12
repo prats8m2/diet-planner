@@ -1,263 +1,346 @@
-import Database from 'better-sqlite3';
-import path from 'path';
-import fs from 'fs';
+import { createClient, type Client as LibSQLClient } from '@libsql/client';
 import type { Client, DietPlan, MealTemplate, FieldConfig, ClientMetrics, WeeklyMeals, DailyMeals } from '@/types';
 
-// Database file path - store in public directory for local storage in PWA
-const dbDir = path.join(process.cwd(), 'data');
-const dbPath = path.join(dbDir, 'diet-planner.db');
+// Initialize Turso client
+const db: LibSQLClient = createClient({
+  url: process.env.TURSO_DATABASE_URL!,
+  authToken: process.env.TURSO_AUTH_TOKEN,
+});
 
-// Ensure data directory exists
-if (!fs.existsSync(dbDir)) {
-  fs.mkdirSync(dbDir, { recursive: true });
-}
+// Track if database has been initialized
+let dbInitialized = false;
 
-// Initialize database
-const db = new Database(dbPath);
-db.pragma('journal_mode = WAL');
-
-// Create tables if they don't exist
-db.exec(`
-  CREATE TABLE IF NOT EXISTS clients (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    metrics TEXT DEFAULT '{}',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  );
-
-  CREATE TABLE IF NOT EXISTS diet_plans (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    client_id INTEGER NOT NULL,
-    week_start TEXT NOT NULL,
-    meals TEXT NOT NULL DEFAULT '{}',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
-  );
-
-  CREATE TABLE IF NOT EXISTS meal_templates (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL UNIQUE,
-    meals TEXT NOT NULL DEFAULT '{}',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  );
-
-  CREATE TABLE IF NOT EXISTS field_configs (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    field_name TEXT NOT NULL,
-    field_type TEXT NOT NULL,
-    options TEXT,
-    is_active BOOLEAN DEFAULT 1,
-    display_order INTEGER DEFAULT 0,
-    category TEXT NOT NULL DEFAULT 'client'
-  );
-`);
-
-// Initialize default field configs if table is empty
-const fieldConfigCount = db.prepare('SELECT COUNT(*) as count FROM field_configs').get() as { count: number };
-if (fieldConfigCount.count === 0) {
-  const defaultFields = [
-    // Client fields
-    { field_name: 'weight', field_type: 'number', options: null, is_active: 1, display_order: 1, category: 'client' },
-    { field_name: 'height', field_type: 'number', options: null, is_active: 1, display_order: 2, category: 'client' },
-    { field_name: 'age', field_type: 'number', options: null, is_active: 1, display_order: 3, category: 'client' },
-    { field_name: 'bloodGroup', field_type: 'select', options: JSON.stringify(['A+', 'B+', 'O+', 'AB+', 'A-', 'B-', 'O-', 'AB-']), is_active: 1, display_order: 4, category: 'client' },
-    { field_name: 'dietaryRestrictions', field_type: 'multiselect', options: JSON.stringify(['Vegetarian', 'Vegan', 'Gluten-Free', 'Dairy-Free', 'Low Carb', 'Keto']), is_active: 1, display_order: 5, category: 'client' },
-    { field_name: 'healthConditions', field_type: 'multiselect', options: JSON.stringify(['Diabetes', 'Hypertension', 'Thyroid', 'PCOD', 'None']), is_active: 1, display_order: 6, category: 'client' },
-    { field_name: 'goal', field_type: 'select', options: JSON.stringify(['Weight Loss', 'Weight Gain', 'Maintenance', 'Muscle Gain']), is_active: 1, display_order: 7, category: 'client' },
-    { field_name: 'allergies', field_type: 'textarea', options: null, is_active: 1, display_order: 8, category: 'client' },
-    { field_name: 'notes', field_type: 'textarea', options: null, is_active: 1, display_order: 9, category: 'client' },
-
-    // Meal fields
-    { field_name: 'time', field_type: 'text', options: null, is_active: 1, display_order: 1, category: 'meal' },
-    { field_name: 'items', field_type: 'textarea', options: null, is_active: 1, display_order: 2, category: 'meal' },
-    { field_name: 'portions', field_type: 'text', options: null, is_active: 1, display_order: 3, category: 'meal' },
-    { field_name: 'calories', field_type: 'number', options: null, is_active: 1, display_order: 4, category: 'meal' },
-    { field_name: 'protein', field_type: 'number', options: null, is_active: 0, display_order: 5, category: 'meal' },
-    { field_name: 'carbs', field_type: 'number', options: null, is_active: 0, display_order: 6, category: 'meal' },
-    { field_name: 'fats', field_type: 'number', options: null, is_active: 0, display_order: 7, category: 'meal' },
-    { field_name: 'notes', field_type: 'textarea', options: null, is_active: 1, display_order: 8, category: 'meal' },
-  ];
-
-  const insertField = db.prepare(`
-    INSERT INTO field_configs (field_name, field_type, options, is_active, display_order, category)
-    VALUES (@field_name, @field_type, @options, @is_active, @display_order, @category)
+// Initialize database tables
+async function initializeDatabase() {
+  if (dbInitialized) return;
+  
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS clients (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      metrics TEXT DEFAULT '{}',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
   `);
 
-  const insertMany = db.transaction((fields: typeof defaultFields) => {
-    for (const field of fields) {
-      insertField.run(field);
-    }
-  });
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS diet_plans (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      client_id INTEGER NOT NULL,
+      week_start TEXT NOT NULL,
+      meals TEXT NOT NULL DEFAULT '{}',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
+    )
+  `);
 
-  insertMany(defaultFields);
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS meal_templates (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      meals TEXT NOT NULL DEFAULT '{}',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS field_configs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      field_name TEXT NOT NULL,
+      field_type TEXT NOT NULL,
+      options TEXT,
+      is_active BOOLEAN DEFAULT 1,
+      display_order INTEGER DEFAULT 0,
+      category TEXT NOT NULL DEFAULT 'client'
+    )
+  `);
+
+  // Initialize default field configs if table is empty
+  const result = await db.execute('SELECT COUNT(*) as count FROM field_configs');
+  const count = result.rows[0]?.count as number;
+  
+  if (count === 0) {
+    const defaultFields = [
+      // Client fields
+      { field_name: 'weight', field_type: 'number', options: null, is_active: 1, display_order: 1, category: 'client' },
+      { field_name: 'height', field_type: 'number', options: null, is_active: 1, display_order: 2, category: 'client' },
+      { field_name: 'age', field_type: 'number', options: null, is_active: 1, display_order: 3, category: 'client' },
+      { field_name: 'bloodGroup', field_type: 'select', options: JSON.stringify(['A+', 'B+', 'O+', 'AB+', 'A-', 'B-', 'O-', 'AB-']), is_active: 1, display_order: 4, category: 'client' },
+      { field_name: 'dietaryRestrictions', field_type: 'multiselect', options: JSON.stringify(['Vegetarian', 'Vegan', 'Gluten-Free', 'Dairy-Free', 'Low Carb', 'Keto']), is_active: 1, display_order: 5, category: 'client' },
+      { field_name: 'healthConditions', field_type: 'multiselect', options: JSON.stringify(['Diabetes', 'Hypertension', 'Thyroid', 'PCOD', 'None']), is_active: 1, display_order: 6, category: 'client' },
+      { field_name: 'goal', field_type: 'select', options: JSON.stringify(['Weight Loss', 'Weight Gain', 'Maintenance', 'Muscle Gain']), is_active: 1, display_order: 7, category: 'client' },
+      { field_name: 'allergies', field_type: 'textarea', options: null, is_active: 1, display_order: 8, category: 'client' },
+      { field_name: 'notes', field_type: 'textarea', options: null, is_active: 1, display_order: 9, category: 'client' },
+      // Meal fields
+      { field_name: 'time', field_type: 'text', options: null, is_active: 1, display_order: 1, category: 'meal' },
+      { field_name: 'items', field_type: 'textarea', options: null, is_active: 1, display_order: 2, category: 'meal' },
+      { field_name: 'portions', field_type: 'text', options: null, is_active: 1, display_order: 3, category: 'meal' },
+      { field_name: 'calories', field_type: 'number', options: null, is_active: 1, display_order: 4, category: 'meal' },
+      { field_name: 'protein', field_type: 'number', options: null, is_active: 0, display_order: 5, category: 'meal' },
+      { field_name: 'carbs', field_type: 'number', options: null, is_active: 0, display_order: 6, category: 'meal' },
+      { field_name: 'fats', field_type: 'number', options: null, is_active: 0, display_order: 7, category: 'meal' },
+      { field_name: 'notes', field_type: 'textarea', options: null, is_active: 1, display_order: 8, category: 'meal' },
+    ];
+
+    for (const field of defaultFields) {
+      await db.execute({
+        sql: `INSERT INTO field_configs (field_name, field_type, options, is_active, display_order, category) VALUES (?, ?, ?, ?, ?, ?)`,
+        args: [field.field_name, field.field_type, field.options, field.is_active, field.display_order, field.category]
+      });
+    }
+  }
+
+  dbInitialized = true;
+}
+
+// Ensure DB is initialized before any operation
+async function ensureDb() {
+  await initializeDatabase();
 }
 
 // Client operations
 export const clientOps = {
-  getAll: (): Client[] => {
-    const rows = db.prepare('SELECT * FROM clients ORDER BY created_at DESC').all() as any[];
-    return rows.map(row => ({
-      ...row,
-      metrics: JSON.parse(row.metrics || '{}')
+  getAll: async (): Promise<Client[]> => {
+    await ensureDb();
+    const result = await db.execute('SELECT * FROM clients ORDER BY created_at DESC');
+    return result.rows.map(row => ({
+      id: row.id as number,
+      name: row.name as string,
+      metrics: JSON.parse((row.metrics as string) || '{}'),
+      created_at: row.created_at as string
     }));
   },
 
-  getById: (id: number): Client | null => {
-    const row = db.prepare('SELECT * FROM clients WHERE id = ?').get(id) as any;
-    if (!row) return null;
+  getById: async (id: number): Promise<Client | null> => {
+    await ensureDb();
+    const result = await db.execute({ sql: 'SELECT * FROM clients WHERE id = ?', args: [id] });
+    if (result.rows.length === 0) return null;
+    const row = result.rows[0];
     return {
-      ...row,
-      metrics: JSON.parse(row.metrics || '{}')
+      id: row.id as number,
+      name: row.name as string,
+      metrics: JSON.parse((row.metrics as string) || '{}'),
+      created_at: row.created_at as string
     };
   },
 
-  create: (name: string, metrics: ClientMetrics = {}): Client => {
-    const info = db.prepare('INSERT INTO clients (name, metrics) VALUES (?, ?)').run(name, JSON.stringify(metrics));
-    return clientOps.getById(info.lastInsertRowid as number)!;
+  create: async (name: string, metrics: ClientMetrics = {}): Promise<Client> => {
+    await ensureDb();
+    const result = await db.execute({
+      sql: 'INSERT INTO clients (name, metrics) VALUES (?, ?)',
+      args: [name, JSON.stringify(metrics)]
+    });
+    return (await clientOps.getById(Number(result.lastInsertRowid)))!;
   },
 
-  update: (id: number, name: string, metrics: ClientMetrics): boolean => {
-    const result = db.prepare('UPDATE clients SET name = ?, metrics = ? WHERE id = ?').run(name, JSON.stringify(metrics), id);
-    return result.changes > 0;
+  update: async (id: number, name: string, metrics: ClientMetrics): Promise<boolean> => {
+    await ensureDb();
+    const result = await db.execute({
+      sql: 'UPDATE clients SET name = ?, metrics = ? WHERE id = ?',
+      args: [name, JSON.stringify(metrics), id]
+    });
+    return result.rowsAffected > 0;
   },
 
-  delete: (id: number): boolean => {
-    const result = db.prepare('DELETE FROM clients WHERE id = ?').run(id);
-    return result.changes > 0;
+  delete: async (id: number): Promise<boolean> => {
+    await ensureDb();
+    const result = await db.execute({ sql: 'DELETE FROM clients WHERE id = ?', args: [id] });
+    return result.rowsAffected > 0;
   }
 };
 
 // Diet plan operations
 export const dietPlanOps = {
-  getByClient: (clientId: number, weekStart?: string): DietPlan[] => {
-    let query = 'SELECT * FROM diet_plans WHERE client_id = ?';
-    const params: any[] = [clientId];
+  getByClient: async (clientId: number, weekStart?: string): Promise<DietPlan[]> => {
+    await ensureDb();
+    let sql = 'SELECT * FROM diet_plans WHERE client_id = ?';
+    const args: (string | number)[] = [clientId];
 
     if (weekStart) {
-      query += ' AND week_start = ?';
-      params.push(weekStart);
+      sql += ' AND week_start = ?';
+      args.push(weekStart);
     }
+    sql += ' ORDER BY week_start DESC';
 
-    query += ' ORDER BY week_start DESC';
-
-    const rows = db.prepare(query).get(...params) as any;
-    if (!rows) return [];
-
-    return Array.isArray(rows) ? rows.map(row => ({
-      ...row,
-      meals: JSON.parse(row.meals || '{}')
-    })) : [{
-      ...rows,
-      meals: JSON.parse(rows.meals || '{}')
-    }];
+    const result = await db.execute({ sql, args });
+    return result.rows.map(row => ({
+      id: row.id as number,
+      client_id: row.client_id as number,
+      week_start: row.week_start as string,
+      meals: JSON.parse((row.meals as string) || '{}'),
+      created_at: row.created_at as string
+    }));
   },
 
-  getLatestByClient: (clientId: number): DietPlan | null => {
-    const row = db.prepare('SELECT * FROM diet_plans WHERE client_id = ? ORDER BY week_start DESC LIMIT 1').get(clientId) as any;
-    if (!row) return null;
+  getLatestByClient: async (clientId: number): Promise<DietPlan | null> => {
+    await ensureDb();
+    const result = await db.execute({
+      sql: 'SELECT * FROM diet_plans WHERE client_id = ? ORDER BY week_start DESC LIMIT 1',
+      args: [clientId]
+    });
+    if (result.rows.length === 0) return null;
+    const row = result.rows[0];
     return {
-      ...row,
-      meals: JSON.parse(row.meals || '{}')
+      id: row.id as number,
+      client_id: row.client_id as number,
+      week_start: row.week_start as string,
+      meals: JSON.parse((row.meals as string) || '{}'),
+      created_at: row.created_at as string
     };
   },
 
-  create: (clientId: number, weekStart: string, meals: WeeklyMeals): DietPlan => {
-    const info = db.prepare('INSERT INTO diet_plans (client_id, week_start, meals) VALUES (?, ?, ?)')
-      .run(clientId, weekStart, JSON.stringify(meals));
-    return dietPlanOps.getById(info.lastInsertRowid as number)!;
+  create: async (clientId: number, weekStart: string, meals: WeeklyMeals): Promise<DietPlan> => {
+    await ensureDb();
+    const result = await db.execute({
+      sql: 'INSERT INTO diet_plans (client_id, week_start, meals) VALUES (?, ?, ?)',
+      args: [clientId, weekStart, JSON.stringify(meals)]
+    });
+    return (await dietPlanOps.getById(Number(result.lastInsertRowid)))!;
   },
 
-  update: (id: number, meals: WeeklyMeals): boolean => {
-    const result = db.prepare('UPDATE diet_plans SET meals = ? WHERE id = ?').run(JSON.stringify(meals), id);
-    return result.changes > 0;
+  update: async (id: number, meals: WeeklyMeals): Promise<boolean> => {
+    await ensureDb();
+    const result = await db.execute({
+      sql: 'UPDATE diet_plans SET meals = ? WHERE id = ?',
+      args: [JSON.stringify(meals), id]
+    });
+    return result.rowsAffected > 0;
   },
 
-  getById: (id: number): DietPlan | null => {
-    const row = db.prepare('SELECT * FROM diet_plans WHERE id = ?').get(id) as any;
-    if (!row) return null;
+  getById: async (id: number): Promise<DietPlan | null> => {
+    await ensureDb();
+    const result = await db.execute({ sql: 'SELECT * FROM diet_plans WHERE id = ?', args: [id] });
+    if (result.rows.length === 0) return null;
+    const row = result.rows[0];
     return {
-      ...row,
-      meals: JSON.parse(row.meals || '{}')
+      id: row.id as number,
+      client_id: row.client_id as number,
+      week_start: row.week_start as string,
+      meals: JSON.parse((row.meals as string) || '{}'),
+      created_at: row.created_at as string
     };
   },
 
-  delete: (id: number): boolean => {
-    const result = db.prepare('DELETE FROM diet_plans WHERE id = ?').run(id);
-    return result.changes > 0;
+  delete: async (id: number): Promise<boolean> => {
+    await ensureDb();
+    const result = await db.execute({ sql: 'DELETE FROM diet_plans WHERE id = ?', args: [id] });
+    return result.rowsAffected > 0;
   }
 };
 
 // Meal template operations
 export const templateOps = {
-  getAll: (): MealTemplate[] => {
-    const rows = db.prepare('SELECT * FROM meal_templates ORDER BY name ASC').all() as any[];
-    return rows.map(row => ({
-      ...row,
-      meals: JSON.parse(row.meals || '{}')
+  getAll: async (): Promise<MealTemplate[]> => {
+    await ensureDb();
+    const result = await db.execute('SELECT * FROM meal_templates ORDER BY name ASC');
+    return result.rows.map(row => ({
+      id: row.id as number,
+      name: row.name as string,
+      meals: JSON.parse((row.meals as string) || '{}'),
+      created_at: row.created_at as string
     }));
   },
 
-  getById: (id: number): MealTemplate | null => {
-    const row = db.prepare('SELECT * FROM meal_templates WHERE id = ?').get(id) as any;
-    if (!row) return null;
+  getById: async (id: number): Promise<MealTemplate | null> => {
+    await ensureDb();
+    const result = await db.execute({ sql: 'SELECT * FROM meal_templates WHERE id = ?', args: [id] });
+    if (result.rows.length === 0) return null;
+    const row = result.rows[0];
     return {
-      ...row,
-      meals: JSON.parse(row.meals || '{}')
+      id: row.id as number,
+      name: row.name as string,
+      meals: JSON.parse((row.meals as string) || '{}'),
+      created_at: row.created_at as string
     };
   },
 
-  create: (name: string, meals: DailyMeals): MealTemplate => {
-    const info = db.prepare('INSERT INTO meal_templates (name, meals) VALUES (?, ?)').run(name, JSON.stringify(meals));
-    return templateOps.getById(info.lastInsertRowid as number)!;
+  create: async (name: string, meals: DailyMeals): Promise<MealTemplate> => {
+    await ensureDb();
+    const result = await db.execute({
+      sql: 'INSERT INTO meal_templates (name, meals) VALUES (?, ?)',
+      args: [name, JSON.stringify(meals)]
+    });
+    return (await templateOps.getById(Number(result.lastInsertRowid)))!;
   },
 
-  update: (id: number, name: string, meals: DailyMeals): boolean => {
-    const result = db.prepare('UPDATE meal_templates SET name = ?, meals = ? WHERE id = ?').run(name, JSON.stringify(meals), id);
-    return result.changes > 0;
+  update: async (id: number, name: string, meals: DailyMeals): Promise<boolean> => {
+    await ensureDb();
+    const result = await db.execute({
+      sql: 'UPDATE meal_templates SET name = ?, meals = ? WHERE id = ?',
+      args: [name, JSON.stringify(meals), id]
+    });
+    return result.rowsAffected > 0;
   },
 
-  delete: (id: number): boolean => {
-    const result = db.prepare('DELETE FROM meal_templates WHERE id = ?').run(id);
-    return result.changes > 0;
+  delete: async (id: number): Promise<boolean> => {
+    await ensureDb();
+    const result = await db.execute({ sql: 'DELETE FROM meal_templates WHERE id = ?', args: [id] });
+    return result.rowsAffected > 0;
   }
 };
 
 // Field config operations
 export const fieldConfigOps = {
-  getAll: (): FieldConfig[] => {
-    const rows = db.prepare('SELECT * FROM field_configs ORDER BY category, display_order ASC').all() as any[];
-    return rows.map(row => ({
-      ...row,
-      options: row.options ? JSON.parse(row.options) : undefined
+  getAll: async (): Promise<FieldConfig[]> => {
+    await ensureDb();
+    const result = await db.execute('SELECT * FROM field_configs ORDER BY category, display_order ASC');
+    return result.rows.map(row => ({
+      id: row.id as number,
+      field_name: row.field_name as string,
+      field_type: row.field_type as FieldConfig['field_type'],
+      options: row.options ? JSON.parse(row.options as string) : undefined,
+      is_active: Boolean(row.is_active),
+      display_order: row.display_order as number,
+      category: row.category as 'client' | 'meal'
     }));
   },
 
-  getByCategory: (category: 'client' | 'meal'): FieldConfig[] => {
-    const rows = db.prepare('SELECT * FROM field_configs WHERE category = ? AND is_active = 1 ORDER BY display_order ASC').all(category) as any[];
-    return rows.map(row => ({
-      ...row,
-      options: row.options ? JSON.parse(row.options) : undefined
+  getByCategory: async (category: 'client' | 'meal'): Promise<FieldConfig[]> => {
+    await ensureDb();
+    const result = await db.execute({
+      sql: 'SELECT * FROM field_configs WHERE category = ? AND is_active = 1 ORDER BY display_order ASC',
+      args: [category]
+    });
+    return result.rows.map(row => ({
+      id: row.id as number,
+      field_name: row.field_name as string,
+      field_type: row.field_type as FieldConfig['field_type'],
+      options: row.options ? JSON.parse(row.options as string) : undefined,
+      is_active: Boolean(row.is_active),
+      display_order: row.display_order as number,
+      category: row.category as 'client' | 'meal'
     }));
   },
 
-  create: (fieldName: string, fieldType: FieldConfig['field_type'], options?: string[], category: 'client' | 'meal' = 'client', isActive = true, displayOrder = 0): FieldConfig => {
-    const info = db.prepare('INSERT INTO field_configs (field_name, field_type, options, is_active, display_order, category) VALUES (?, ?, ?, ?, ?, ?)')
-      .run(fieldName, fieldType, options ? JSON.stringify(options) : null, isActive ? 1 : 0, displayOrder, category);
-    return fieldConfigOps.getById(info.lastInsertRowid as number)!;
+  create: async (fieldName: string, fieldType: FieldConfig['field_type'], options?: string[], category: 'client' | 'meal' = 'client', isActive = true, displayOrder = 0): Promise<FieldConfig> => {
+    await ensureDb();
+    const result = await db.execute({
+      sql: 'INSERT INTO field_configs (field_name, field_type, options, is_active, display_order, category) VALUES (?, ?, ?, ?, ?, ?)',
+      args: [fieldName, fieldType, options ? JSON.stringify(options) : null, isActive ? 1 : 0, displayOrder, category]
+    });
+    return (await fieldConfigOps.getById(Number(result.lastInsertRowid)))!;
   },
 
-  getById: (id: number): FieldConfig | null => {
-    const row = db.prepare('SELECT * FROM field_configs WHERE id = ?').get(id) as any;
-    if (!row) return null;
+  getById: async (id: number): Promise<FieldConfig | null> => {
+    await ensureDb();
+    const result = await db.execute({ sql: 'SELECT * FROM field_configs WHERE id = ?', args: [id] });
+    if (result.rows.length === 0) return null;
+    const row = result.rows[0];
     return {
-      ...row,
-      options: row.options ? JSON.parse(row.options) : undefined
+      id: row.id as number,
+      field_name: row.field_name as string,
+      field_type: row.field_type as FieldConfig['field_type'],
+      options: row.options ? JSON.parse(row.options as string) : undefined,
+      is_active: Boolean(row.is_active),
+      display_order: row.display_order as number,
+      category: row.category as 'client' | 'meal'
     };
   },
 
-  update: (id: number, updates: Partial<FieldConfig>): boolean => {
+  update: async (id: number, updates: Partial<FieldConfig>): Promise<boolean> => {
+    await ensureDb();
     const fields: string[] = [];
-    const values: any[] = [];
+    const values: (string | number | null)[] = [];
 
     if (updates.field_name !== undefined) { fields.push('field_name = ?'); values.push(updates.field_name); }
     if (updates.field_type !== undefined) { fields.push('field_type = ?'); values.push(updates.field_type); }
@@ -268,13 +351,17 @@ export const fieldConfigOps = {
     if (fields.length === 0) return false;
 
     values.push(id);
-    const result = db.prepare(`UPDATE field_configs SET ${fields.join(', ')} WHERE id = ?`).run(...values);
-    return result.changes > 0;
+    const result = await db.execute({
+      sql: `UPDATE field_configs SET ${fields.join(', ')} WHERE id = ?`,
+      args: values
+    });
+    return result.rowsAffected > 0;
   },
 
-  delete: (id: number): boolean => {
-    const result = db.prepare('DELETE FROM field_configs WHERE id = ?').run(id);
-    return result.changes > 0;
+  delete: async (id: number): Promise<boolean> => {
+    await ensureDb();
+    const result = await db.execute({ sql: 'DELETE FROM field_configs WHERE id = ?', args: [id] });
+    return result.rowsAffected > 0;
   }
 };
 

@@ -4,7 +4,7 @@ import { templateOps } from '@/lib/db';
 // GET all templates
 export async function GET() {
   try {
-    const templates = templateOps.getAll();
+    const templates = await templateOps.getAll();
     return NextResponse.json(templates);
   } catch (error) {
     console.error('Error fetching templates:', error);
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const newTemplate = templateOps.create(name, meals);
+    const newTemplate = await templateOps.create(name, meals);
     return NextResponse.json(newTemplate, { status: 201 });
   } catch (error) {
     console.error('Error creating template:', error);

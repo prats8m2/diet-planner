@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Plus, Search, User, MoreVertical } from "lucide-react";
@@ -20,7 +20,7 @@ const calculateBMI = (weight: number, height: number): number => {
   return Number((weight / (heightInMeters * heightInMeters)).toFixed(1));
 };
 
-export default function ClientsPage() {
+function ClientsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [clients, setClients] = useState<Client[]>([]);
@@ -410,5 +410,13 @@ export default function ClientsPage() {
         )}
       </main>
     </div>
+  );
+}
+
+export default function ClientsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center"><p className="text-gray-500">Loading...</p></div>}>
+      <ClientsPageContent />
+    </Suspense>
   );
 }
