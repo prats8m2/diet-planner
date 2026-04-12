@@ -138,14 +138,14 @@ function ClientsPageContent() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-emerald-50/30 to-orange-50/20 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800">
+    <div className="min-h-screen bg-gradient-to-br from-white via-emerald-50/50 to-teal-50/40 dark:from-gray-900 dark:via-emerald-950/20 dark:to-teal-950/20">
       {/* Header */}
-      <header className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-md shadow-sm sticky top-0 z-10 border-b border-gray-100 dark:border-gray-700">
+      <header className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-md shadow-sm sticky top-0 z-10 border-b border-emerald-100 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
               <Link href="/">
-                <button className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                <button className="p-2 rounded-full hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors">
                   <svg className="w-5 h-5 text-gray-600 dark:text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="15 18 9 12 15 6" />
                   </svg>
@@ -228,7 +228,7 @@ function ClientsPageContent() {
 
                   {/* Live BMI Indicator */}
                   {clientMetrics.weight && clientMetrics.height && (
-                    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 border">
+                    <div className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 rounded-lg p-3 border border-emerald-100 dark:border-emerald-900">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Calculated BMI</p>
@@ -239,9 +239,9 @@ function ClientsPageContent() {
                         <div className="text-right">
                           <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Status</p>
                           <p className={`text-sm font-semibold ${
-                            calculateBMI(parseFloat(clientMetrics.weight), parseFloat(clientMetrics.height)) < 18.5 ? 'text-blue-600' :
-                            calculateBMI(parseFloat(clientMetrics.weight), parseFloat(clientMetrics.height)) < 25 ? 'text-green-600' :
-                            calculateBMI(parseFloat(clientMetrics.weight), parseFloat(clientMetrics.height)) < 30 ? 'text-orange-600' : 'text-red-600'
+                            calculateBMI(parseFloat(clientMetrics.weight), parseFloat(clientMetrics.height)) < 18.5 ? 'text-emerald-600' :
+                            calculateBMI(parseFloat(clientMetrics.weight), parseFloat(clientMetrics.height)) < 25 ? 'text-emerald-600' :
+                            calculateBMI(parseFloat(clientMetrics.weight), parseFloat(clientMetrics.height)) < 30 ? 'text-teal-600' : 'text-teal-700'
                           }`}>
                             {calculateBMI(parseFloat(clientMetrics.weight), parseFloat(clientMetrics.height)) < 18.5 ? 'Underweight' :
                              calculateBMI(parseFloat(clientMetrics.weight), parseFloat(clientMetrics.height)) < 25 ? 'Normal' :
@@ -328,7 +328,7 @@ function ClientsPageContent() {
                     />
                   </div>
 
-                  <Button onClick={handleAddClient} className="w-full bg-emerald-600 hover:bg-emerald-700">
+                  <Button onClick={handleAddClient} className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600">
                     Add Client
                   </Button>
                 </div>
@@ -372,7 +372,7 @@ function ClientsPageContent() {
                   : "Add your first client to get started"}
               </p>
               {!searchQuery && (
-                <Button onClick={() => setIsDialogOpen(true)} className="bg-emerald-600 hover:bg-emerald-700">
+                <Button onClick={() => setIsDialogOpen(true)} className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600">
                   <Plus className="w-4 h-4 mr-2" />
                   Add First Client
                 </Button>
@@ -383,12 +383,14 @@ function ClientsPageContent() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredClients.map((client) => (
               <Link key={client.id} href={`/clients/${client.id}`}>
-                <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                <Card className="hover:shadow-lg transition-all cursor-pointer border border-emerald-100 dark:border-gray-700 hover:border-teal-200 dark:hover:border-teal-800">
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900 rounded-full flex items-center justify-center">
-                          <User className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                        <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-teal-400 rounded-full flex items-center justify-center shadow-md">
+                          <span className="text-white font-semibold text-lg">
+                            {client.name.charAt(0).toUpperCase()}
+                          </span>
                         </div>
                         <div>
                           <CardTitle className="text-lg">{client.name}</CardTitle>
@@ -425,7 +427,7 @@ function ClientsPageContent() {
       </main>
 
       {/* Bottom Navigation for Mobile */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border-t border-gray-200 dark:border-gray-700 safe-area-inset-bottom">
+      <nav className="fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border-t border-emerald-100 dark:border-gray-700 safe-area-inset-bottom">
         <div className="flex justify-around items-center h-16">
           <Link href="/" className="flex flex-col items-center gap-1 px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
             <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

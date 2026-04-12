@@ -32,9 +32,9 @@ export default function Home() {
   const recentClients = clients.slice(0, 6);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-emerald-50/30 to-orange-50/20 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800">
+    <div className="min-h-screen bg-gradient-to-br from-white via-emerald-50/50 to-teal-50/40 dark:from-gray-900 dark:via-emerald-950/20 dark:to-teal-950/20">
       {/* Header */}
-      <header className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-md shadow-sm sticky top-0 z-10 border-b border-gray-100 dark:border-gray-700">
+      <header className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-md shadow-sm sticky top-0 z-10 border-b border-emerald-100 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <Link href="/" className="flex items-center gap-3">
@@ -49,7 +49,7 @@ export default function Home() {
               </div>
               <div className="hidden sm:block">
                 <h1 className="text-lg font-bold text-gray-900 dark:text-white">Taste of Health</h1>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Personalized Diet Plans</p>
+                <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Personalized Diet Plans</p>
               </div>
             </Link>
             <div className="flex items-center gap-2">
@@ -67,11 +67,11 @@ export default function Home() {
 
       {/* Hero Section */}
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 via-transparent to-orange-500/10 dark:from-emerald-500/5 dark:to-orange-500/5" />
+        <div className="absolute inset-0 bg-gradient-to-r from-emerald-50/50 via-teal-50/30 to-emerald-50/50 dark:from-emerald-950/20 dark:via-teal-950/10 dark:to-emerald-950/20" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
           <div className="text-center max-w-2xl mx-auto">
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              Your Journey to <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-500">Better Health</span> Starts Here
+              Your Journey to <span className="text-emerald-600 dark:text-emerald-400">Better Health</span> Starts Here
             </h2>
             <p className="text-gray-600 dark:text-gray-400 text-base sm:text-lg mb-8">
               Create personalized diet plans, track client progress, and help them achieve their wellness goals.
@@ -84,7 +84,7 @@ export default function Home() {
                 </Button>
               </Link>
               <Link href="/clients">
-                <Button variant="outline" className="w-full sm:w-auto border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800">
+                <Button variant="outline" className="w-full sm:w-auto border-teal-200 dark:border-teal-900 text-teal-700 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-900/20 hover:border-teal-300 dark:hover:border-teal-800">
                   View All Clients
                   <ChevronRight className="w-4 h-4 ml-1" />
                 </Button>
@@ -95,30 +95,30 @@ export default function Home() {
       </section>
 
       {/* Stats Bar */}
-      <section className="border-y border-gray-200 dark:border-gray-700 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm">
+      <section className="border-y border-emerald-100 dark:border-gray-700 bg-gradient-to-r from-emerald-50/60 to-teal-50/60 dark:from-emerald-950/20 dark:to-teal-950/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
             <div className="text-center">
               <p className="text-2xl sm:text-3xl font-bold text-emerald-600 dark:text-emerald-400">{clients.length}</p>
-              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Active Clients</p>
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 font-medium">Active Clients</p>
             </div>
             <div className="text-center">
               <p className="text-2xl sm:text-3xl font-bold text-teal-600 dark:text-teal-400">
                 {clients.filter(c => c.metrics.goal === 'Weight Loss').length}
               </p>
-              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Weight Loss</p>
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 font-medium">Weight Loss</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl sm:text-3xl font-bold text-orange-600 dark:text-orange-400">
+              <p className="text-2xl sm:text-3xl font-bold text-emerald-600 dark:text-emerald-400">
                 {clients.filter(c => c.metrics.goal === 'Weight Gain').length}
               </p>
-              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Weight Gain</p>
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 font-medium">Weight Gain</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl sm:text-3xl font-bold text-purple-600 dark:text-purple-400">
+              <p className="text-2xl sm:text-3xl font-bold text-teal-500 dark:text-teal-500">
                 {clients.filter(c => c.metrics.goal === 'Maintenance' || c.metrics.goal === 'General Health').length}
               </p>
-              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Maintenance</p>
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 font-medium">Maintenance</p>
             </div>
           </div>
         </div>
@@ -132,7 +132,7 @@ export default function Home() {
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Quick access to your latest clients</p>
           </div>
           <Link href="/clients">
-            <Button variant="ghost" className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300">
+            <Button variant="ghost" className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/20">
               View All
               <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
@@ -156,7 +156,7 @@ export default function Home() {
             ))}
           </div>
         ) : recentClients.length === 0 ? (
-          <Card className="border-dashed border-2 border-gray-300 dark:border-gray-700">
+          <Card className="border-dashed border-2 border-emerald-200 dark:border-emerald-900 bg-gradient-to-br from-emerald-50/60 to-teal-50/60 dark:from-emerald-950/20 dark:to-teal-950/20">
             <CardContent className="py-16 text-center">
               <div className="w-16 h-16 bg-gradient-to-br from-emerald-100 to-teal-100 dark:from-emerald-900/30 dark:to-teal-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
                 <User className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
@@ -179,10 +179,10 @@ export default function Home() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {recentClients.map((client) => (
               <Link key={client.id} href={`/clients/${client.id}`}>
-                <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-gray-200 dark:border-gray-700">
+                <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-emerald-100 dark:border-gray-700 hover:border-teal-200 dark:hover:border-teal-800">
                   <CardContent className="p-4">
                     <div className="flex items-start gap-4">
-                      <div className="w-14 h-14 bg-gradient-to-br from-emerald-400 via-teal-500 to-orange-400 rounded-2xl flex items-center justify-center text-white text-xl font-bold shadow-lg shadow-emerald-200 dark:shadow-none group-hover:scale-110 transition-transform duration-300">
+                      <div className="w-14 h-14 bg-gradient-to-br from-emerald-400 to-teal-400 rounded-2xl flex items-center justify-center text-white text-xl font-bold shadow-lg group-hover:scale-110 transition-transform duration-300">
                         {client.name.charAt(0).toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -191,7 +191,7 @@ export default function Home() {
                         </h4>
                         <div className="flex flex-wrap items-center gap-2 mt-1.5">
                           {client.metrics.goal && (
-                            <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">
+                            <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 font-medium">
                               <TrendingUp className="w-3 h-3" />
                               {client.metrics.goal}
                             </span>
@@ -219,7 +219,7 @@ export default function Home() {
         {clients.length > 6 && (
           <div className="text-center mt-8">
             <Link href="/clients">
-              <Button variant="outline" className="border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800">
+              <Button variant="outline" className="border-teal-200 dark:border-teal-900 text-teal-700 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-900/20">
                 View All {clients.length} Clients
                 <ChevronRight className="w-4 h-4 ml-1" />
               </Button>
@@ -229,7 +229,7 @@ export default function Home() {
       </main>
 
       {/* Bottom Navigation for Mobile */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border-t border-gray-200 dark:border-gray-700 safe-area-inset-bottom">
+      <nav className="fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border-t border-emerald-100 dark:border-gray-700 safe-area-inset-bottom">
         <div className="flex justify-around items-center h-16">
           <Link href="/" className="flex flex-col items-center gap-1 px-4 py-2 text-emerald-600 dark:text-emerald-400">
             <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

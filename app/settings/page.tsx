@@ -8,13 +8,13 @@ import { Button } from "@/components/ui/button";
 
 export default function SettingsPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-emerald-50/30 to-orange-50/20 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800">
+    <div className="min-h-screen bg-gradient-to-br from-white via-emerald-50/50 to-teal-50/40 dark:from-gray-900 dark:via-emerald-950/20 dark:to-teal-950/20">
       {/* Header */}
-      <header className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-md shadow-sm sticky top-0 z-10 border-b border-gray-100 dark:border-gray-700">
+      <header className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-md shadow-sm sticky top-0 z-10 border-b border-emerald-100 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3 h-16">
             <Link href="/">
-              <button className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+              <button className="p-2 rounded-full hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors">
                 <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
               </button>
             </Link>
@@ -37,15 +37,15 @@ export default function SettingsPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="space-y-4">
           {/* Brand Card */}
-          <Card className="border-emerald-200 dark:border-emerald-800 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20">
+          <Card className="border-emerald-200 dark:border-emerald-900 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30">
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 bg-gradient-to-br from-emerald-400 via-teal-500 to-orange-400 rounded-2xl flex items-center justify-center shadow-lg">
+                <div className="w-16 h-16 bg-gradient-to-br from-emerald-400 to-teal-400 rounded-2xl flex items-center justify-center shadow-lg">
                   <Heart className="w-8 h-8 text-white" />
                 </div>
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Taste of Health</h2>
-                  <p className="text-gray-600 dark:text-gray-400">Personalized Diet Plans</p>
+                  <p className="text-emerald-600 dark:text-emerald-400 font-medium">Personalized Diet Plans</p>
                 </div>
               </div>
             </CardContent>
@@ -114,7 +114,7 @@ export default function SettingsPage() {
                     <p className="font-medium text-gray-900 dark:text-white">Data Storage</p>
                     <p className="text-sm text-gray-500">All data stored locally on device</p>
                   </div>
-                  <span className="text-xs bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-1 rounded-full">
+                  <span className="text-xs bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-1 rounded-full font-medium">
                     Offline Ready
                   </span>
                 </div>
@@ -126,8 +126,8 @@ export default function SettingsPage() {
           <Card>
             <CardHeader>
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-orange-100 dark:bg-orange-900/50 rounded-lg">
-                  <HelpCircle className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                <div className="p-2 bg-teal-100 dark:bg-teal-900/50 rounded-lg">
+                  <HelpCircle className="w-5 h-5 text-teal-600 dark:text-teal-400" />
                 </div>
                 <div>
                   <CardTitle>Quick Guide</CardTitle>
@@ -137,30 +137,30 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="p-4 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
+                <div className="p-4 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="w-6 h-6 rounded-full bg-emerald-500 text-white text-xs flex items-center justify-center font-semibold">1</span>
                     <p className="font-medium text-gray-900 dark:text-white">Add Clients</p>
                   </div>
                   <p className="text-sm text-gray-600 dark:text-gray-400">Create client profiles with their details and health goals</p>
                 </div>
-                <div className="p-4 rounded-lg bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800">
+                <div className="p-4 rounded-lg bg-teal-50 dark:bg-teal-950/30 border border-teal-200 dark:border-teal-800">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="w-6 h-6 rounded-full bg-teal-500 text-white text-xs flex items-center justify-center font-semibold">2</span>
                     <p className="font-medium text-gray-900 dark:text-white">Create Plans</p>
                   </div>
                   <p className="text-sm text-gray-600 dark:text-gray-400">Build personalized weekly meal plans for each client</p>
                 </div>
-                <div className="p-4 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800">
+                <div className="p-4 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="w-6 h-6 rounded-full bg-orange-500 text-white text-xs flex items-center justify-center font-semibold">3</span>
+                    <span className="w-6 h-6 rounded-full bg-emerald-500 text-white text-xs flex items-center justify-center font-semibold">3</span>
                     <p className="font-medium text-gray-900 dark:text-white">Track Progress</p>
                   </div>
                   <p className="text-sm text-gray-600 dark:text-gray-400">Monitor client progress and adjust plans as needed</p>
                 </div>
-                <div className="p-4 rounded-lg bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800">
+                <div className="p-4 rounded-lg bg-teal-50 dark:bg-teal-950/30 border border-teal-200 dark:border-teal-800">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="w-6 h-6 rounded-full bg-purple-500 text-white text-xs flex items-center justify-center font-semibold">4</span>
+                    <span className="w-6 h-6 rounded-full bg-teal-500 text-white text-xs flex items-center justify-center font-semibold">4</span>
                     <p className="font-medium text-gray-900 dark:text-white">Export & Share</p>
                   </div>
                   <p className="text-sm text-gray-600 dark:text-gray-400">Export diet plans as PDF to share with clients</p>
@@ -170,7 +170,7 @@ export default function SettingsPage() {
           </Card>
 
           {/* PWA Install Instructions */}
-          <Card className="border-emerald-200 dark:border-emerald-800">
+          <Card className="border-emerald-200 dark:border-emerald-900">
             <CardHeader>
               <CardTitle className="text-emerald-700 dark:text-emerald-400">Install as App</CardTitle>
               <CardDescription>
@@ -189,7 +189,7 @@ export default function SettingsPage() {
       </main>
 
       {/* Bottom Navigation for Mobile */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border-t border-gray-200 dark:border-gray-700 safe-area-inset-bottom">
+      <nav className="fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border-t border-emerald-100 dark:border-gray-700 safe-area-inset-bottom">
         <div className="flex justify-around items-center h-16">
           <Link href="/" className="flex flex-col items-center gap-1 px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
             <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
