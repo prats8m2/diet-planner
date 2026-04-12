@@ -152,6 +152,22 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
     }
   };
 
+  const createNewPlan = () => {
+    // Reset to empty meals for a new plan
+    setQuickMeals({
+      preWorkout: { time: '06:00', items: [] },
+      postWorkout: { time: '07:30', items: [] },
+      breakfast: { time: '08:00', items: [] },
+      lunch: { time: '13:00', items: [] },
+      snacks: { time: '16:00', items: [] },
+      dinner: { time: '19:00', items: [] },
+      afterDinner: { time: '21:00', items: [] }
+    });
+    setDietPlan(null);
+    setShowPlansList(false);
+    setIsEditing(true);
+  };
+
   const loadTemplates = async () => {
     try {
       const response = await fetch('/api/templates');
@@ -271,11 +287,8 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
       });
     });
 
-    if (dietPlan) {
-      await updateDietPlan(dietPlan.id, meals);
-    } else {
-      await createDietPlan(meals);
-    }
+    // Always create a new plan
+    await createDietPlan(meals);
     setIsEditing(false);
   };
 
@@ -286,7 +299,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           clientId: parseInt(clientId),
-          weekStart: getWeekStart(),
+          weekStart: new Date().toISOString().split('T')[0], // Use current date as timestamp
           meals
         })
       });
@@ -620,39 +633,6 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                 </DialogContent>
               </Dialog>
 
-              {/* Save as Template Dialog */}
-              <Dialog open={isSaveAsTemplateOpen} onOpenChange={setIsSaveAsTemplateOpen}>
-                <DialogTrigger asChild>
-                  <Button size="sm" variant="outline">
-                    <Save className="w-4 h-4 mr-1 sm:mr-0" />
-                    <span className="hidden sm:inline">Save as Template</span>
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Save as Template</DialogTitle>
-                  </DialogHeader>
-                  <p className="text-sm text-gray-500 mb-4">
-                    Save current meals as a reusable template
-                  </p>
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="templateName">Template Name</Label>
-                      <Input
-                        id="templateName"
-                        value={newTemplateName}
-                        onChange={(e) => setNewTemplateName(e.target.value)}
-                        placeholder="e.g., Weight Loss Plan"
-                        className="mt-1"
-                      />
-                    </div>
-                    <Button onClick={saveAsTemplate} className="w-full bg-emerald-600 hover:bg-emerald-700">
-                      Save Template
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
-
               <Dialog open={showPlansList} onOpenChange={setShowPlansList}>
                 <DialogTrigger asChild>
                   <Button
@@ -673,6 +653,18 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                       View and manage all diet plans for {client.name}
                     </DialogDescription>
                   </DialogHeader>
+
+                  {/* Create New Plan Button */}
+                  <div className="mb-4">
+                    <Button
+                      onClick={createNewPlan}
+                      className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Create New Plan
+                    </Button>
+                  </div>
+
                   <div className="space-y-3 py-4">
                     {allDietPlans.length === 0 ? (
                       <p className="text-center text-gray-500 py-8">No diet plans found. Create one to get started.</p>
@@ -691,7 +683,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                               <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-2">
                                   <h3 className="font-semibold text-gray-900 dark:text-white">
-                                    Week of {new Date(plan.week_start).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                                    Diet Plan #{plan.id}
                                   </h3>
                                   {plan.is_active && (
                                     <span className="px-2 py-1 text-xs font-medium bg-emerald-100 text-emerald-700 rounded-full dark:bg-emerald-900 dark:text-emerald-300">
