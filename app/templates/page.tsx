@@ -150,6 +150,7 @@ export default function TemplatesPage() {
               </DialogContent>
             </Dialog>
           </div>
+          </div>
         </div>
       </header>
 

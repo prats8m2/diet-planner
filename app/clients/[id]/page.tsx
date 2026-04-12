@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Client, DietPlan, Meal, WeeklyMeals, MealType, FoodItem, MealTemplate } from "@/types";
 
@@ -58,6 +58,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
 
   const [client, setClient] = useState<Client | null>(null);
   const [dietPlan, setDietPlan] = useState<DietPlan | null>(null);
+  const [allDietPlans, setAllDietPlans] = useState<DietPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'quick' | 'custom'>('quick');
   const [selectedDay, setSelectedDay] = useState(0);
@@ -66,6 +67,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
   const [isEditingClient, setIsEditingClient] = useState(false);
   const [isSavingClient, setIsSavingClient] = useState(false);
   const [editedClient, setEditedClient] = useState<Partial<Client>>({});
+  const [showPlansList, setShowPlansList] = useState(false);
   
   // Template state
   const [templates, setTemplates] = useState<MealTemplate[]>([]);
@@ -116,6 +118,37 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
       console.error('Failed to load client:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadAllDietPlans = async () => {
+    try {
+      const response = await fetch(`/api/clients/${clientId}/plans`);
+      if (response.ok) {
+        const plans = await response.json();
+        setAllDietPlans(plans);
+      }
+    } catch (error) {
+      console.error('Failed to load diet plans:', error);
+    }
+  };
+
+  const togglePlanActivation = async (planId: number, clientId: number, isActive: boolean) => {
+    try {
+      const response = await fetch(`/api/clients/${clientId}/plans`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: isActive ? 'deactivate' : 'activate',
+          planId
+        })
+      });
+
+      if (response.ok) {
+        await loadAllDietPlans();
+      }
+    } catch (error) {
+      console.error('Failed to toggle plan:', error);
     }
   };
 
@@ -583,6 +616,130 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                     <Button onClick={saveAsTemplate} className="w-full bg-emerald-600 hover:bg-emerald-700">
                       Save Template
                     </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              {/* Save as Template Dialog */}
+              <Dialog open={isSaveAsTemplateOpen} onOpenChange={setIsSaveAsTemplateOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm" variant="outline">
+                    <Save className="w-4 h-4 mr-1 sm:mr-0" />
+                    <span className="hidden sm:inline">Save as Template</span>
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Save as Template</DialogTitle>
+                  </DialogHeader>
+                  <p className="text-sm text-gray-500 mb-4">
+                    Save current meals as a reusable template
+                  </p>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="templateName">Template Name</Label>
+                      <Input
+                        id="templateName"
+                        value={newTemplateName}
+                        onChange={(e) => setNewTemplateName(e.target.value)}
+                        placeholder="e.g., Weight Loss Plan"
+                        className="mt-1"
+                      />
+                    </div>
+                    <Button onClick={saveAsTemplate} className="w-full bg-emerald-600 hover:bg-emerald-700">
+                      Save Template
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              <Dialog open={showPlansList} onOpenChange={setShowPlansList}>
+                <DialogTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      loadAllDietPlans();
+                    }}
+                  >
+                    <FileText className="w-4 h-4 mr-1 sm:mr-0" />
+                    <span className="hidden sm:inline">All Plans</span>
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>All Diet Plans</DialogTitle>
+                    <DialogDescription>
+                      View and manage all diet plans for {client.name}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-3 py-4">
+                    {allDietPlans.length === 0 ? (
+                      <p className="text-center text-gray-500 py-8">No diet plans found. Create one to get started.</p>
+                    ) : (
+                      allDietPlans.map((plan) => (
+                        <Card
+                          key={plan.id}
+                          className={`transition-all ${
+                            plan.is_active
+                              ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/20'
+                              : 'border-gray-200 dark:border-gray-700'
+                          }`}
+                        >
+                          <CardContent className="p-4">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <h3 className="font-semibold text-gray-900 dark:text-white">
+                                    Week of {new Date(plan.week_start).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                                  </h3>
+                                  {plan.is_active && (
+                                    <span className="px-2 py-1 text-xs font-medium bg-emerald-100 text-emerald-700 rounded-full dark:bg-emerald-900 dark:text-emerald-300">
+                                      Active
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">
+                                  Created on {new Date(plan.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                </p>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  variant={plan.is_active ? "outline" : "default"}
+                                  onClick={() => togglePlanActivation(plan.id, client.id, plan.is_active ?? false)}
+                                  className={plan.is_active ? "" : "bg-emerald-600 hover:bg-emerald-700"}
+                                >
+                                  {plan.is_active ? "Deactivate" : "Activate"}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setDietPlan(plan);
+                                    const mondayMeals = plan.meals.Monday;
+                                    if (mondayMeals) {
+                                      setQuickMeals({
+                                        preWorkout: { time: mondayMeals.preWorkout?.time || '06:00', items: mondayMeals.preWorkout?.items || [] },
+                                        postWorkout: { time: mondayMeals.postWorkout?.time || '07:30', items: mondayMeals.postWorkout?.items || [] },
+                                        breakfast: { time: mondayMeals.breakfast?.time || '08:00', items: mondayMeals.breakfast?.items || [] },
+                                        lunch: { time: mondayMeals.lunch?.time || '13:00', items: mondayMeals.lunch?.items || [] },
+                                        snacks: { time: mondayMeals.snacks?.time || '16:00', items: mondayMeals.snacks?.items || [] },
+                                        dinner: { time: mondayMeals.dinner?.time || '19:00', items: mondayMeals.dinner?.items || [] },
+                                        afterDinner: { time: mondayMeals.afterDinner?.time || '21:00', items: mondayMeals.afterDinner?.items || [] }
+                                      });
+                                    }
+                                    setShowPlansList(false);
+                                  }}
+                                >
+                                  Load
+                                </Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))
+                    )}
                   </div>
                 </DialogContent>
               </Dialog>

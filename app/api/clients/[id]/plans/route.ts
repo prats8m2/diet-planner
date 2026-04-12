@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { dietPlanOps } from '@/lib/db';
+import { dietPlanOps, clientOps } from '@/lib/db';
 
 // GET all diet plans for a client
 export async function GET(
@@ -7,7 +7,21 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Get dietitian ID from session
+    const authHeader = request.headers.get('x-user-id');
+    if (!authHeader) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const dietitianId = parseInt(authHeader);
     const clientId = parseInt((await params).id);
+
+    // Verify the client belongs to this dietitian
+    const client = await clientOps.getById(clientId);
+    if (!client || client.dietitian_id !== dietitianId) {
+      return NextResponse.json({ error: 'Client not found' }, { status: 404 });
+    }
+
     const plans = await dietPlanOps.getByClient(clientId);
     const activePlan = await dietPlanOps.getActiveByClient(clientId);
 
@@ -30,12 +44,32 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Get dietitian ID from session
+    const authHeader = request.headers.get('x-user-id');
+    if (!authHeader) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const dietitianId = parseInt(authHeader);
+    const clientId = parseInt((await params).id);
+
+    // Verify the client belongs to this dietitian
+    const client = await clientOps.getById(clientId);
+    if (!client || client.dietitian_id !== dietitianId) {
+      return NextResponse.json({ error: 'Client not found' }, { status: 404 });
+    }
+
     const { action, planId } = await request.json();
 
     if (action === 'activate') {
       const plan = await dietPlanOps.getById(parseInt(planId));
       if (!plan) {
         return NextResponse.json({ error: 'Plan not found' }, { status: 404 });
+      }
+
+      // Verify the plan belongs to the client
+      if (plan.client_id !== clientId) {
+        return NextResponse.json({ error: 'Plan not found for this client' }, { status: 404 });
       }
 
       const success = await dietPlanOps.activatePlan(parseInt(planId), plan.client_id);
@@ -46,6 +80,16 @@ export async function PATCH(
     }
 
     if (action === 'deactivate') {
+      const plan = await dietPlanOps.getById(parseInt(planId));
+      if (!plan) {
+        return NextResponse.json({ error: 'Plan not found' }, { status: 404 });
+      }
+
+      // Verify the plan belongs to the client
+      if (plan.client_id !== clientId) {
+        return NextResponse.json({ error: 'Plan not found for this client' }, { status: 404 });
+      }
+
       const success = await dietPlanOps.deactivatePlan(parseInt(planId));
       if (success) {
         return NextResponse.json({ success: true });

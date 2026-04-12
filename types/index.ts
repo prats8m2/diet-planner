@@ -3,6 +3,7 @@ export interface Client {
   id: number;
   name: string;
   metrics: ClientMetrics;
+  dietitian_id?: number;
   created_at: string;
 }
 
@@ -28,6 +29,7 @@ export interface DietPlan {
   client_id: number;
   week_start: string;
   meals: WeeklyMeals;
+  is_active?: boolean;
   created_at: string;
 }
 

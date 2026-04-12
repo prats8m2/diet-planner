@@ -58,7 +58,11 @@ function ClientsPageContent() {
 
   const loadClients = async () => {
     try {
-      const response = await fetch("/api/clients");
+      const response = await fetch("/api/clients", {
+        headers: {
+          'x-user-id': user?.id?.toString() || '0'
+        }
+      });
       if (response.ok) {
         const data = await response.json();
         setClients(data);
@@ -79,7 +83,10 @@ function ClientsPageContent() {
 
       const response = await fetch("/api/clients", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": user?.id?.toString() || '0'
+        },
         body: JSON.stringify({
           name: newClientName,
           metrics: {
@@ -350,6 +357,7 @@ function ClientsPageContent() {
                 </div>
               </DialogContent>
             </Dialog>
+          </div>
           </div>
         </div>
       </header>

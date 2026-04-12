@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { dietPlanOps } from '@/lib/db';
+import { dietPlanOps, clientOps } from '@/lib/db';
 
 // POST new diet plan
 export async function POST(request: Request) {
@@ -12,6 +12,20 @@ export async function POST(request: Request) {
         { error: 'Missing required fields' },
         { status: 400 }
       );
+    }
+
+    // Get dietitian ID from session
+    const authHeader = request.headers.get('x-user-id');
+    if (!authHeader) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const dietitianId = parseInt(authHeader);
+
+    // Verify the client belongs to this dietitian
+    const client = await clientOps.getById(clientId);
+    if (!client || client.dietitian_id !== dietitianId) {
+      return NextResponse.json({ error: 'Client not found' }, { status: 404 });
     }
 
     const newPlan = await dietPlanOps.create(clientId, weekStart, meals);

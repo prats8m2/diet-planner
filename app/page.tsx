@@ -18,7 +18,11 @@ export default function Home() {
   useEffect(() => {
     const loadClients = async () => {
       try {
-        const response = await fetch("/api/clients");
+        const response = await fetch("/api/clients", {
+          headers: {
+            'x-user-id': user?.id?.toString() || '0'
+          }
+        });
         if (response.ok) {
           const data = await response.json();
           setClients(data);
@@ -29,8 +33,12 @@ export default function Home() {
         setLoading(false);
       }
     };
-    loadClients();
-  }, []);
+
+    // Only load clients when user is available
+    if (user) {
+      loadClients();
+    }
+  }, [user]);
 
   const recentClients = clients.slice(0, 6);
 
