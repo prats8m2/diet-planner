@@ -8,20 +8,20 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Diet Planner - Pooja Singh",
-  description: "Custom diet planner for creating and managing personalized meal plans",
+  title: "Taste of Health - Personalized Diet Plans",
+  description: "Create personalized diet plans, track client progress, and help achieve wellness goals with Taste of Health.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Diet Planner",
+    title: "Taste of Health",
   },
   formatDetection: {
     telephone: false,
   },
   icons: {
-    icon: "/icon-192.png",
-    apple: "/icon-192.png",
+    icon: "/Taste Of Health Logo.png",
+    apple: "/Taste Of Health Logo.png",
   },
 };
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Plus, Trash2, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -74,24 +75,37 @@ export default function TemplatesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-white via-emerald-50/30 to-orange-50/20 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800">
       {/* Header */}
-      <header className="bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-10">
+      <header className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-md shadow-sm sticky top-0 z-10 border-b border-gray-100 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
               <Link href="/">
-                <button className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
-                  ←
+                <button className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                  <svg className="w-5 h-5 text-gray-600 dark:text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="15 18 9 12 15 6" />
+                  </svg>
                 </button>
               </Link>
-              <h1 className="text-xl font-bold text-gray-900 dark:text-white">Meal Templates</h1>
+              <div className="flex items-center gap-2">
+                <div className="relative w-8 h-8 sm:hidden">
+                  <Image
+                    src="/Taste Of Health Logo.png"
+                    alt="Taste of Health Logo"
+                    fill
+                    className="object-contain"
+                  />
+                </div>
+                <h1 className="text-xl font-bold text-gray-900 dark:text-white">Meal Templates</h1>
+              </div>
             </div>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
-                <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700">
+                <Button size="sm" className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600">
                   <Plus className="w-4 h-4 mr-1" />
-                  New Template
+                  <span className="hidden sm:inline">New Template</span>
+                  <span className="sm:hidden">New</span>
                 </Button>
               </DialogTrigger>
               <DialogContent>
@@ -112,7 +126,7 @@ export default function TemplatesPage() {
                       className="mt-1"
                     />
                   </div>
-                  <Button onClick={handleCreateTemplate} className="w-full bg-emerald-600 hover:bg-emerald-700">
+                  <Button onClick={handleCreateTemplate} className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600">
                     Create Template
                   </Button>
                 </div>
@@ -126,19 +140,22 @@ export default function TemplatesPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {loading ? (
           <div className="text-center py-12">
-            <p className="text-gray-500">Loading templates...</p>
+            <div className="inline-block w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-gray-500 dark:text-gray-400 mt-4">Loading templates...</p>
           </div>
         ) : templates.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <Calendar className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+          <Card className="border-dashed border-2 border-gray-300 dark:border-gray-700">
+            <CardContent className="py-16 text-center">
+              <div className="w-16 h-16 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Calendar className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
                 No templates yet
               </h3>
-              <p className="text-gray-500 dark:text-gray-400 mb-4">
-                Create reusable meal plan templates to save time
+              <p className="text-gray-500 dark:text-gray-400 mb-6 text-sm max-w-sm mx-auto">
+                Create reusable meal plan templates to save time when creating diet plans for clients.
               </p>
-              <Button onClick={() => setIsDialogOpen(true)} className="bg-emerald-600 hover:bg-emerald-700">
+              <Button onClick={() => setIsDialogOpen(true)} className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600">
                 <Plus className="w-4 h-4 mr-2" />
                 Create First Template
               </Button>
@@ -152,7 +169,7 @@ export default function TemplatesPage() {
                 (meal) => meal && meal.items && meal.items.length > 0
               ).length;
               return (
-                <Card key={template.id} className="hover:shadow-lg transition-shadow">
+                <Card key={template.id} className="hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-gray-200 dark:border-gray-700">
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div>
@@ -165,36 +182,37 @@ export default function TemplatesPage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => handleDeleteTemplate(template.id)}
+                        className="hover:bg-red-50 dark:hover:bg-red-900/20"
                       >
                         <Trash2 className="w-4 h-4 text-red-500" />
                       </Button>
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-1 mb-2">
+                    <div className="space-y-1 mb-3">
                       {meals.preWorkout?.items && meals.preWorkout.items.length > 0 && (
-                        <p className="text-xs text-gray-600">• Pre Workout: {meals.preWorkout.items.length} items</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">• Pre Workout: {meals.preWorkout.items.length} items</p>
                       )}
                       {meals.postWorkout?.items && meals.postWorkout.items.length > 0 && (
-                        <p className="text-xs text-gray-600">• Post Workout: {meals.postWorkout.items.length} items</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">• Post Workout: {meals.postWorkout.items.length} items</p>
                       )}
                       {meals.breakfast?.items && meals.breakfast.items.length > 0 && (
-                        <p className="text-xs text-gray-600">• Breakfast: {meals.breakfast.items.length} items</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">• Breakfast: {meals.breakfast.items.length} items</p>
                       )}
                       {meals.lunch?.items && meals.lunch.items.length > 0 && (
-                        <p className="text-xs text-gray-600">• Lunch: {meals.lunch.items.length} items</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">• Lunch: {meals.lunch.items.length} items</p>
                       )}
                       {meals.snacks?.items && meals.snacks.items.length > 0 && (
-                        <p className="text-xs text-gray-600">• Snacks: {meals.snacks.items.length} items</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">• Snacks: {meals.snacks.items.length} items</p>
                       )}
                       {meals.dinner?.items && meals.dinner.items.length > 0 && (
-                        <p className="text-xs text-gray-600">• Dinner: {meals.dinner.items.length} items</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">• Dinner: {meals.dinner.items.length} items</p>
                       )}
                       {meals.afterDinner?.items && meals.afterDinner.items.length > 0 && (
-                        <p className="text-xs text-gray-600">• After Dinner: {meals.afterDinner.items.length} items</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">• After Dinner: {meals.afterDinner.items.length} items</p>
                       )}
                     </div>
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs text-gray-400 dark:text-gray-500">
                       Created on {new Date(template.created_at).toLocaleDateString()}
                     </p>
                   </CardContent>
@@ -204,6 +222,47 @@ export default function TemplatesPage() {
           </div>
         )}
       </main>
+
+      {/* Bottom Navigation for Mobile */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border-t border-gray-200 dark:border-gray-700 safe-area-inset-bottom">
+        <div className="flex justify-around items-center h-16">
+          <Link href="/" className="flex flex-col items-center gap-1 px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
+            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+              <polyline points="9 22 9 12 15 12 15 22" />
+            </svg>
+            <span className="text-xs font-medium">Home</span>
+          </Link>
+          <Link href="/clients" className="flex flex-col items-center gap-1 px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
+            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+            <span className="text-xs font-medium">Clients</span>
+          </Link>
+          <Link href="/templates" className="flex flex-col items-center gap-1 px-4 py-2 text-emerald-600 dark:text-emerald-400">
+            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+            <span className="text-xs font-medium">Templates</span>
+          </Link>
+          <Link href="/settings" className="flex flex-col items-center gap-1 px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
+            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M12 1v6m0 6v6m5.66-15.66l-4.24 4.24m0 5.66l4.24 4.24M1 12h6m6 0h6M5.66 5.66l4.24 4.24m0 5.66l-4.24 4.24" />
+            </svg>
+            <span className="text-xs font-medium">Settings</span>
+          </Link>
+        </div>
+      </nav>
+
+      {/* Add padding for bottom nav */}
+      <div className="h-16" />
     </div>
   );
 }
