@@ -16,7 +16,7 @@ async function migrate() {
       WHERE name='is_active'
     `);
 
-    const hasColumn = checkResult.rows[0]?.has_column > 0;
+    const hasColumn = Number(checkResult.rows[0]?.has_column ?? 0) > 0;
 
     if (!hasColumn) {
       console.log('Adding is_active column...');

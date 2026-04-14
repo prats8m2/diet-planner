@@ -207,7 +207,7 @@ export const clientOps = {
       id: row.id as number,
       name: row.name as string,
       metrics: JSON.parse((row.metrics as string) || '{}'),
-      dietitian_id: row.dietitian_id as number | null,
+      dietitian_id: (row.dietitian_id as number | null) ?? undefined,
       created_at: row.created_at as string
     }));
   },
@@ -221,7 +221,7 @@ export const clientOps = {
       id: row.id as number,
       name: row.name as string,
       metrics: JSON.parse((row.metrics as string) || '{}'),
-      dietitian_id: row.dietitian_id as number | null,
+      dietitian_id: (row.dietitian_id as number | null) ?? undefined,
       created_at: row.created_at as string
     };
   },

@@ -1,9 +1,4 @@
 import { createClient } from '@libsql/client';
-import { open } from 'sqlite';
-import fs from 'fs';
-import path from 'path';
-
-const dbPath = path.join(process.cwd(), 'data', 'diet-planner.db');
 
 async function migrateIsActiveColumn() {
   console.log('Checking for is_active column in diet_plans table...');
@@ -21,7 +16,7 @@ async function migrateIsActiveColumn() {
       WHERE name='is_active'
     `);
 
-    const hasColumn = checkResult.rows[0]?.column_exists > 0;
+    const hasColumn = Number(checkResult.rows[0]?.column_exists ?? 0) > 0;
 
     if (!hasColumn) {
       console.log('Adding is_active column to diet_plans table...');

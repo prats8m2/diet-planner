@@ -6,7 +6,18 @@ export async function GET(request: Request) {
     const authHeader = request.headers.get('x-user-id');
     const dietitianId = authHeader ? parseInt(authHeader) : null;
 
-    const results = {
+    const results: {
+      currentDietitianId: number | null;
+      authHeader: string | null;
+      client3: { id: number; name: string; dietitian_id: number | undefined; hasDietitianId: boolean; metrics: any } | string | null;
+      client3DietitianId: number | undefined | null;
+      allClients: Array<{ id: number; name: string; dietitian_id: number | undefined; hasDietitianId: boolean }> | string;
+      client3Plans?: Array<{ id: number; client_id: number; week_start: string; created_at: string }> | string;
+      updateSuccess?: boolean;
+      updatedDietitianId?: number;
+      updatedClient?: { id: number | undefined; dietitian_id: number | undefined } | null;
+      updateError?: string;
+    } = {
       currentDietitianId: dietitianId,
       authHeader: authHeader,
       client3: null,
@@ -22,7 +33,8 @@ export async function GET(request: Request) {
           id: client3.id,
           name: client3.name,
           dietitian_id: client3.dietitian_id,
-          hasDietitianId: client3.dietitian_id !== null && client3.dietitian_id !== undefined
+          hasDietitianId: client3.dietitian_id !== null && client3.dietitian_id !== undefined,
+          metrics: client3.metrics
         };
         results.client3DietitianId = client3.dietitian_id;
       } else {

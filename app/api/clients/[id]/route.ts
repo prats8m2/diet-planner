@@ -22,6 +22,9 @@ export async function GET(
       return NextResponse.json({ error: 'Client not found' }, { status: 404 });
     }
 
+    // Get the latest diet plan for this client
+    const dietPlan = await dietPlanOps.getLatestByClient(id);
+
     // If client doesn't have a dietitian_id and we have a current user, assign them
     if (dietitianId && (client.dietitian_id === null || client.dietitian_id === undefined)) {
       const updatedClient = await clientOps.update(id, client.name, client.metrics, dietitianId);
@@ -30,9 +33,6 @@ export async function GET(
         return NextResponse.json({ client: updatedClient, dietPlan });
       }
     }
-
-    // Get the latest diet plan for this client
-    const dietPlan = await dietPlanOps.getLatestByClient(id);
 
     return NextResponse.json({ client, dietPlan });
   } catch (error) {

@@ -15,9 +15,16 @@ export async function GET() {
       WHERE name='is_active'
     `);
 
-    const hasColumn = checkResult.rows[0]?.has_column > 0;
+    const hasColumn = Number(checkResult.rows[0]?.has_column ?? 0) > 0;
 
-    let result = {};
+    let result: {
+      message: string;
+      action: string;
+      verification?: Record<string, unknown>;
+    } = {
+      message: '',
+      action: ''
+    };
 
     if (!hasColumn) {
       // Add the column
