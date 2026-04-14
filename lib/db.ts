@@ -207,6 +207,7 @@ export const clientOps = {
       id: row.id as number,
       name: row.name as string,
       metrics: JSON.parse((row.metrics as string) || '{}'),
+      dietitian_id: row.dietitian_id as number | null,
       created_at: row.created_at as string
     }));
   },
@@ -220,6 +221,7 @@ export const clientOps = {
       id: row.id as number,
       name: row.name as string,
       metrics: JSON.parse((row.metrics as string) || '{}'),
+      dietitian_id: row.dietitian_id as number | null,
       created_at: row.created_at as string
     };
   },
@@ -233,13 +235,27 @@ export const clientOps = {
     return (await clientOps.getById(Number(result.lastInsertRowid)))!;
   },
 
-  update: async (id: number, name: string, metrics: ClientMetrics): Promise<boolean> => {
+  update: async (id: number, name: string, metrics: ClientMetrics, dietitianId?: number): Promise<Client | null> => {
     await ensureDb();
+    const fields: string[] = ['name = ?', 'metrics = ?'];
+    const values: (string | number)[] = [name, JSON.stringify(metrics)];
+
+    if (dietitianId !== undefined) {
+      fields.push('dietitian_id = ?');
+      values.push(dietitianId);
+    }
+
+    values.push(id);
     const result = await db.execute({
-      sql: 'UPDATE clients SET name = ?, metrics = ? WHERE id = ?',
-      args: [name, JSON.stringify(metrics), id]
+      sql: `UPDATE clients SET ${fields.join(', ')} WHERE id = ?`,
+      args: values
     });
-    return result.rowsAffected > 0;
+
+    if (result.rowsAffected > 0) {
+      // Return the updated client
+      return await clientOps.getById(id);
+    }
+    return null;
   },
 
   delete: async (id: number): Promise<boolean> => {

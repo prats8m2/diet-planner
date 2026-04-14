@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FoodItemAutocomplete } from "@/components/FoodItemAutocomplete";
+import { useAuth } from "@/contexts/AuthContext";
 import type { Client, DietPlan, Meal, WeeklyMeals, MealType, FoodItem, MealTemplate } from "@/types";
 
 const MEAL_TYPES: MealType[] = ['preWorkout', 'postWorkout', 'breakfast', 'lunch', 'snacks', 'dinner', 'afterDinner'];
@@ -56,6 +57,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
   const router = useRouter();
   const resolvedParams = use(params);
   const clientId = resolvedParams.id;
+  const { user } = useAuth();
 
   const [client, setClient] = useState<Client | null>(null);
   const [dietPlan, setDietPlan] = useState<DietPlan | null>(null);
@@ -90,6 +92,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
   useEffect(() => {
     loadClientData();
     loadTemplates();
+    loadAllDietPlans();
   }, [clientId]);
 
   const loadClientData = async () => {
@@ -98,20 +101,33 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
       if (response.ok) {
         const data = await response.json();
         setClient(data.client);
-        if (data.dietPlan) {
-          setDietPlan(data.dietPlan);
-          // Load existing meals into quick mode
-          const mondayMeals = data.dietPlan.meals.Monday;
-          if (mondayMeals) {
-            setQuickMeals({
-              preWorkout: { time: mondayMeals.preWorkout?.time || '06:00', items: mondayMeals.preWorkout?.items || [] },
-              postWorkout: { time: mondayMeals.postWorkout?.time || '07:30', items: mondayMeals.postWorkout?.items || [] },
-              breakfast: { time: mondayMeals.breakfast?.time || '08:00', items: mondayMeals.breakfast?.items || [] },
-              lunch: { time: mondayMeals.lunch?.time || '13:00', items: mondayMeals.lunch?.items || [] },
-              snacks: { time: mondayMeals.snacks?.time || '16:00', items: mondayMeals.snacks?.items || [] },
-              dinner: { time: mondayMeals.dinner?.time || '19:00', items: mondayMeals.dinner?.items || [] },
-              afterDinner: { time: mondayMeals.afterDinner?.time || '21:00', items: mondayMeals.afterDinner?.items || [] }
-            });
+        // Only load diet plan if it exists and has actual content
+        if (data.dietPlan && data.dietPlan.meals) {
+          // Check if the plan has any actual food items
+          const hasItems = Object.values(data.dietPlan.meals).some((dayMeals: any) =>
+            dayMeals && Object.values(dayMeals).some((meal: any) =>
+              meal && meal.items && meal.items.some((item: any) => item.name && item.name.trim())
+            )
+          );
+
+          if (hasItems) {
+            setDietPlan(data.dietPlan);
+            // Load existing meals into quick mode
+            const mondayMeals = data.dietPlan.meals.Monday;
+            if (mondayMeals) {
+              setQuickMeals({
+                preWorkout: { time: mondayMeals.preWorkout?.time || '06:00', items: mondayMeals.preWorkout?.items || [] },
+                postWorkout: { time: mondayMeals.postWorkout?.time || '07:30', items: mondayMeals.postWorkout?.items || [] },
+                breakfast: { time: mondayMeals.breakfast?.time || '08:00', items: mondayMeals.breakfast?.items || [] },
+                lunch: { time: mondayMeals.lunch?.time || '13:00', items: mondayMeals.lunch?.items || [] },
+                snacks: { time: mondayMeals.snacks?.time || '16:00', items: mondayMeals.snacks?.items || [] },
+                dinner: { time: mondayMeals.dinner?.time || '19:00', items: mondayMeals.dinner?.items || [] },
+                afterDinner: { time: mondayMeals.afterDinner?.time || '21:00', items: mondayMeals.afterDinner?.items || [] }
+              });
+            }
+          } else {
+            // Diet plan exists but has no items, don't load it
+            setDietPlan(null);
           }
         }
       }
@@ -124,7 +140,11 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
 
   const loadAllDietPlans = async () => {
     try {
-      const response = await fetch(`/api/clients/${clientId}/plans`);
+      const response = await fetch(`/api/clients/${clientId}/plans`, {
+        headers: {
+          'x-user-id': user?.id?.toString() || '0'
+        }
+      });
       if (response.ok) {
         const plans = await response.json();
         setAllDietPlans(plans);
@@ -138,7 +158,10 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
     try {
       const response = await fetch(`/api/clients/${clientId}/plans`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': user?.id?.toString() || '0'
+        },
         body: JSON.stringify({
           action: isActive ? 'deactivate' : 'activate',
           planId
@@ -288,8 +311,16 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
       });
     });
 
-    // Always create a new plan
-    await createDietPlan(meals);
+    // Update existing plan if it exists, otherwise create a new one
+    if (dietPlan) {
+      await updateDietPlan(dietPlan.id, meals);
+      alert('Diet plan updated successfully!');
+    } else {
+      await createDietPlan(meals);
+      alert('New diet plan created successfully!');
+    }
+    // Refresh the diet plans list to show the new/updated plan
+    await loadAllDietPlans();
     setIsEditing(false);
   };
 
@@ -297,7 +328,10 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
     try {
       const response = await fetch('/api/diet-plans', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': user?.id?.toString() || '0'
+        },
         body: JSON.stringify({
           clientId: parseInt(clientId),
           weekStart: new Date().toISOString().split('T')[0], // Use current date as timestamp
@@ -318,7 +352,10 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
     try {
       const response = await fetch(`/api/diet-plans/${planId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': user?.id?.toString() || '0'
+        },
         body: JSON.stringify({ meals })
       });
 
@@ -622,14 +659,16 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                 </DialogContent>
               </Dialog>
 
-              <Dialog open={showPlansList} onOpenChange={setShowPlansList}>
+              <Dialog open={showPlansList} onOpenChange={(open) => {
+                setShowPlansList(open);
+                if (open) {
+                  loadAllDietPlans();
+                }
+              }}>
                 <DialogTrigger asChild>
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => {
-                      loadAllDietPlans();
-                    }}
                   >
                     <FileText className="w-4 h-4 mr-1 sm:mr-0" />
                     <span className="hidden sm:inline">All Plans</span>

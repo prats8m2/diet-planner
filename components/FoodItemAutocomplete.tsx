@@ -24,6 +24,7 @@ export function FoodItemAutocomplete({
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [showDropdown, setShowDropdown] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -72,11 +73,13 @@ export function FoodItemAutocomplete({
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onChange(e.target.value);
     setSelectedIndex(-1);
+    setShowDropdown(true);
   };
 
   const handleSelect = (item: string) => {
     onChange(item);
     setSelectedIndex(-1);
+    setShowDropdown(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -102,6 +105,7 @@ export function FoodItemAutocomplete({
         break;
       case 'Escape':
         setSelectedIndex(-1);
+        setShowDropdown(false);
         break;
     }
   };
@@ -114,6 +118,7 @@ export function FoodItemAutocomplete({
         !containerRef.current.contains(event.target as Node)
       ) {
         setSelectedIndex(-1);
+        setShowDropdown(false);
       }
     };
 
@@ -130,6 +135,7 @@ export function FoodItemAutocomplete({
           value={value}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
+          onFocus={() => value && setShowDropdown(true)}
           placeholder={placeholder}
           className={className}
           autoComplete="off"
@@ -142,7 +148,7 @@ export function FoodItemAutocomplete({
       </div>
 
       {/* Only show dropdown when user has typed something and there are matches */}
-      {value && filteredSuggestions.length > 0 && (
+      {showDropdown && value && filteredSuggestions.length > 0 && (
         <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
           {filteredSuggestions.slice(0, 10).map((item, index) => (
             <div
@@ -166,7 +172,7 @@ export function FoodItemAutocomplete({
       )}
 
       {/* Show "no results" message only when user has typed something and there are no matches */}
-      {value && filteredSuggestions.length === 0 && suggestions.length > 0 && (
+      {showDropdown && value && filteredSuggestions.length === 0 && suggestions.length > 0 && (
         <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-3">
           <p className="text-sm text-gray-500 dark:text-gray-400">
             No matching items. Press Enter to add "{value}" as a new item.

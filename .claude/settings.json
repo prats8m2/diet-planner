@@ -12,7 +12,13 @@
       "Bash(npx ts-node:*)",
       "Bash(ls -la .env*)",
       "Bash(node -r dotenv/config --eval \"console.log\\(process.env.TURSO_DATABASE_URL\\)\")",
-      "Bash(node -r dotenv/config --eval \"require\\('dotenv'\\).config\\({path: '.env.local'}\\); console.log\\(process.env.TURSO_DATABASE_URL\\)\")"
+      "Bash(node -r dotenv/config --eval \"require\\('dotenv'\\).config\\({path: '.env.local'}\\); console.log\\(process.env.TURSO_DATABASE_URL\\)\")",
+      "Bash(npx tsx:*)",
+      "Bash(sqlite3 data/diet-planner.db \"PRAGMA table_info\\(diet_plans\\);\")",
+      "Bash(sqlite3 data/diet-planner.db \"ALTER TABLE diet_plans ADD COLUMN is_active BOOLEAN DEFAULT 0;\")",
+      "Bash(sqlite3 data/diet-planner.db \"SELECT id, client_id, week_start, is_active FROM diet_plans;\")",
+      "Bash(node scripts/migrate-turso-is-active.js)",
+      "Bash(curl http://localhost:3000/api/migrate)"
     ]
   }
 }

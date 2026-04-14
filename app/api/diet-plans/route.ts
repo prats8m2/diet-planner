@@ -22,9 +22,18 @@ export async function POST(request: Request) {
 
     const dietitianId = parseInt(authHeader);
 
-    // Verify the client belongs to this dietitian
+    // Get the client
     const client = await clientOps.getById(clientId);
-    if (!client || client.dietitian_id !== dietitianId) {
+    if (!client) {
+      return NextResponse.json({ error: 'Client not found' }, { status: 404 });
+    }
+
+    // If client doesn't have a dietitian_id, update it to the current user
+    if (client.dietitian_id === null || client.dietitian_id === undefined) {
+      await clientOps.update(clientId, client.name, client.metrics, dietitianId);
+    }
+    // Verify the client belongs to this dietitian
+    else if (client.dietitian_id !== dietitianId) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 });
     }
 

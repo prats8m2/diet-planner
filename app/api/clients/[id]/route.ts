@@ -13,9 +13,22 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid client ID' }, { status: 400 });
     }
 
+    // Get dietitian ID from session if available
+    const authHeader = request.headers.get('x-user-id');
+    const dietitianId = authHeader ? parseInt(authHeader) : null;
+
     const client = await clientOps.getById(id);
     if (!client) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 });
+    }
+
+    // If client doesn't have a dietitian_id and we have a current user, assign them
+    if (dietitianId && (client.dietitian_id === null || client.dietitian_id === undefined)) {
+      const updatedClient = await clientOps.update(id, client.name, client.metrics, dietitianId);
+      if (updatedClient) {
+        // Use the updated client with dietitian_id
+        return NextResponse.json({ client: updatedClient, dietPlan });
+      }
     }
 
     // Get the latest diet plan for this client
@@ -48,8 +61,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Client not found' }, { status: 404 });
     }
 
-    const client = await clientOps.getById(id);
-    return NextResponse.json(client);
+    return NextResponse.json(updated);
   } catch (error) {
     console.error('Error updating client:', error);
     return NextResponse.json({ error: 'Failed to update client' }, { status: 500 });
