@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { FoodItemAutocomplete } from "@/components/FoodItemAutocomplete";
 import type { Client, DietPlan, Meal, WeeklyMeals, MealType, FoodItem, MealTemplate } from "@/types";
 
 const MEAL_TYPES: MealType[] = ['preWorkout', 'postWorkout', 'breakfast', 'lunch', 'snacks', 'dinner', 'afterDinner'];
@@ -788,12 +789,11 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                       {quickMeals[mealType].items.map((item, index) => (
                         <div key={index} className="flex gap-2 items-start p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                           <div className="flex-1 grid grid-cols-1 sm:grid-cols-4 gap-2">
-                            <Input
-                              placeholder="Food item name"
+                            <FoodItemAutocomplete
                               value={item.name}
-                              onChange={(e) => updateFoodItem(mealType, index, 'name', e.target.value)}
+                              onChange={(value) => updateFoodItem(mealType, index, 'name', value)}
+                              placeholder="Food item name"
                               className="sm:col-span-2"
-                              autoFocus={!item.name}
                             />
                             <Input
                               placeholder="Portion"

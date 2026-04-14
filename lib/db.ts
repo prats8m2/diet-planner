@@ -366,6 +366,18 @@ export const dietPlanOps = {
     await ensureDb();
     const result = await db.execute({ sql: 'DELETE FROM diet_plans WHERE id = ?', args: [id] });
     return result.rowsAffected > 0;
+  },
+
+  getAll: async (): Promise<DietPlan[]> => {
+    await ensureDb();
+    const result = await db.execute('SELECT * FROM diet_plans ORDER BY created_at DESC');
+    return result.rows.map(row => ({
+      id: row.id as number,
+      client_id: row.client_id as number,
+      week_start: row.week_start as string,
+      meals: JSON.parse((row.meals as string) || '{}'),
+      created_at: row.created_at as string
+    }));
   }
 };
 
