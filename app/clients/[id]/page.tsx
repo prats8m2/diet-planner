@@ -3,7 +3,7 @@
 import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Save, Download, Plus, X, Edit, Calendar as CalendarIcon, ChevronLeft, ChevronRight, FileText } from "lucide-react";
+import { ArrowLeft, Save, Download, Plus, X, Edit, Calendar as CalendarIcon, ChevronLeft, ChevronRight, FileText, Power, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -492,28 +492,18 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
               {viewMode === 'quick' && (
                 <Button
                   onClick={() => isEditing ? handleSave() : setIsEditing(true)}
-                  size="sm"
+                  size="icon"
                   variant={isEditing ? "default" : "outline"}
                   className={isEditing ? "bg-emerald-600 hover:bg-emerald-700" : ""}
+                  title={isEditing ? "Save Diet Plan" : "Edit Diet Plan"}
                 >
-                  {isEditing ? (
-                    <>
-                      <Save className="w-4 h-4 mr-1" />
-                      Save
-                    </>
-                  ) : (
-                    <>
-                      <Edit className="w-4 h-4 mr-1" />
-                      Edit
-                    </>
-                  )}
+                  {isEditing ? <Save className="w-4 h-4" /> : <Edit className="w-4 h-4" />}
                 </Button>
               )}
               <Dialog open={isExportOpen} onOpenChange={setIsExportOpen}>
                 <DialogTrigger asChild>
-                  <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700">
-                    <Download className="w-4 h-4 mr-1 sm:mr-0" />
-                    <span className="hidden sm:inline">Export</span>
+                  <Button size="icon" className="bg-emerald-600 hover:bg-emerald-700" title="Export Diet Plan">
+                    <Download className="w-4 h-4" />
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
@@ -566,9 +556,8 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
               {/* Apply Template Dialog */}
               <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button size="sm" variant="outline">
-                    <CalendarIcon className="w-4 h-4 mr-1 sm:mr-0" />
-                    <span className="hidden sm:inline">Apply Template</span>
+                  <Button size="icon" variant="outline" title="Apply Template">
+                    <CalendarIcon className="w-4 h-4" />
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
@@ -604,9 +593,8 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
               {/* Save as Template Dialog */}
               <Dialog open={isSaveAsTemplateOpen} onOpenChange={setIsSaveAsTemplateOpen}>
                 <DialogTrigger asChild>
-                  <Button size="sm" variant="outline">
-                    <Save className="w-4 h-4 mr-1 sm:mr-0" />
-                    <span className="hidden sm:inline">Save as Template</span>
+                  <Button size="icon" variant="outline" title="Save as Template">
+                    <Save className="w-4 h-4" />
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
@@ -698,15 +686,16 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                               </div>
                               <div className="flex gap-2">
                                 <Button
-                                  size="sm"
+                                  size="icon"
                                   variant={plan.is_active ? "outline" : "default"}
                                   onClick={() => togglePlanActivation(plan.id, client.id, plan.is_active ?? false)}
                                   className={plan.is_active ? "" : "bg-emerald-600 hover:bg-emerald-700"}
+                                  title={plan.is_active ? "Deactivate Plan" : "Activate Plan"}
                                 >
-                                  {plan.is_active ? "Deactivate" : "Activate"}
+                                  <Power className="w-4 h-4" />
                                 </Button>
                                 <Button
-                                  size="sm"
+                                  size="icon"
                                   variant="outline"
                                   onClick={() => {
                                     setDietPlan(plan);
@@ -724,8 +713,9 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                                     }
                                     setShowPlansList(false);
                                   }}
+                                  title="Load Plan"
                                 >
-                                  Load
+                                  <RotateCw className="w-4 h-4" />
                                 </Button>
                               </div>
                             </div>
