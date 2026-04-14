@@ -1312,120 +1312,140 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
             </div>
           </CardHeader>
           <CardContent className="p-4">
-            {/* BMI Card - Prominent Display */}
-            {client.metrics.bmi && (
-              <div className="mb-4 p-4 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl text-white shadow-lg">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-emerald-100 uppercase tracking-wide mb-1">BMI</p>
-                    <p className="text-3xl font-bold">{client.metrics.bmi}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs text-emerald-100 uppercase tracking-wide mb-1">Status</p>
-                    <p className="text-lg font-semibold bg-white/20 px-3 py-1 rounded-full">
-                      {getBMIStatus(client.metrics.bmi).label}
-                    </p>
-                  </div>
+            {/* Check if client has any metrics */}
+            {Object.keys(client.metrics).length === 0 ? (
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Edit className="w-8 h-8 text-gray-400" />
                 </div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No client information yet</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Add details like weight, height, and goals to create personalized diet plans.</p>
+                <Button
+                  onClick={handleEditClient}
+                  className="bg-emerald-600 hover:bg-emerald-700"
+                >
+                  <Edit className="w-4 h-4 mr-2" />
+                  Add Client Details
+                </Button>
               </div>
+            ) : (
+              <>
+                {/* BMI Card - Prominent Display */}
+                {client.metrics.bmi && (
+                  <div className="mb-4 p-4 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl text-white shadow-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-emerald-100 uppercase tracking-wide mb-1">BMI</p>
+                        <p className="text-3xl font-bold">{client.metrics.bmi}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-emerald-100 uppercase tracking-wide mb-1">Status</p>
+                        <p className="text-lg font-semibold bg-white/20 px-3 py-1 rounded-full">
+                          {getBMIStatus(client.metrics.bmi).label}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Metrics Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {client.metrics.weight && (
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <p className="text-xs text-gray-500 mb-1">Weight</p>
+                      <p className="text-lg font-semibold text-gray-900 dark:text-white">{client.metrics.weight} <span className="text-sm font-normal">kg</span></p>
+                    </div>
+                  )}
+                  {client.metrics.height && (
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <p className="text-xs text-gray-500 mb-1">Height</p>
+                      <p className="text-lg font-semibold text-gray-900 dark:text-white">{client.metrics.height} <span className="text-sm font-normal">cm</span></p>
+                    </div>
+                  )}
+                  {client.metrics.age && (
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <p className="text-xs text-gray-500 mb-1">Age</p>
+                      <p className="text-lg font-semibold text-gray-900 dark:text-white">{client.metrics.age} <span className="text-sm font-normal">yrs</span></p>
+                    </div>
+                  )}
+                  {client.metrics.bloodGroup && (
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <p className="text-xs text-gray-500 mb-1">Blood</p>
+                      <p className="text-lg font-semibold text-gray-900 dark:text-white">{client.metrics.bloodGroup}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Nutritional Requirements */}
+                {(client.metrics.energy || client.metrics.protein || client.metrics.carbs) && (
+                  <div className="mt-4">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Nutritional Targets</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {client.metrics.energy && (
+                        <div className="p-2 bg-orange-50 dark:bg-orange-950/30 rounded-lg text-center">
+                          <p className="text-xs text-orange-600 dark:text-orange-400">Energy</p>
+                          <p className="text-sm font-semibold text-orange-700 dark:text-orange-300">{client.metrics.energy}</p>
+                          <p className="text-xs text-orange-500">kcal</p>
+                        </div>
+                      )}
+                      {client.metrics.protein && (
+                        <div className="p-2 bg-blue-50 dark:bg-blue-950/30 rounded-lg text-center">
+                          <p className="text-xs text-blue-600 dark:text-blue-400">Protein</p>
+                          <p className="text-sm font-semibold text-blue-700 dark:text-blue-300">{client.metrics.protein}</p>
+                          <p className="text-xs text-blue-500">grams</p>
+                        </div>
+                      )}
+                      {client.metrics.carbs && (
+                        <div className="p-2 bg-green-50 dark:bg-green-950/30 rounded-lg text-center">
+                          <p className="text-xs text-green-600 dark:text-green-400">Carbs</p>
+                          <p className="text-sm font-semibold text-green-700 dark:text-green-300">{client.metrics.carbs}</p>
+                          <p className="text-xs text-green-500">grams</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Additional Info */}
+                <div className="mt-4 space-y-3">
+                  {client.metrics.foodPreference && (
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        <span className="font-medium">Food Preference:</span>{' '}
+                        <span className="capitalize">{client.metrics.foodPreference === 'non-veg' ? 'Non-Vegetarian' : client.metrics.foodPreference}</span>
+                      </p>
+                    </div>
+                  )}
+                  {client.metrics.goal && (
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        <span className="font-medium">Goal:</span> {client.metrics.goal}
+                      </p>
+                    </div>
+                  )}
+                  {client.metrics.allergies && (
+                    <div className="p-3 bg-red-50 dark:bg-red-950/30 rounded-lg border border-red-200 dark:border-red-800">
+                      <p className="text-sm text-red-800 dark:text-red-200 flex items-start gap-2">
+                        <span className="shrink-0">⚠️</span>
+                        <div>
+                          <span className="font-medium">Allergies:</span> {client.metrics.allergies}
+                        </div>
+                      </p>
+                    </div>
+                  )}
+                  {client.metrics.notes && (
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <p className="text-sm text-gray-600 dark:text-gray-400 flex items-start gap-2">
+                        <span className="shrink-0">📝</span>
+                        <span>{client.metrics.notes}</span>
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </>
             )}
-
-            {/* Metrics Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {client.metrics.weight && (
-                <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  <p className="text-xs text-gray-500 mb-1">Weight</p>
-                  <p className="text-lg font-semibold text-gray-900 dark:text-white">{client.metrics.weight} <span className="text-sm font-normal">kg</span></p>
-                </div>
-              )}
-              {client.metrics.height && (
-                <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  <p className="text-xs text-gray-500 mb-1">Height</p>
-                  <p className="text-lg font-semibold text-gray-900 dark:text-white">{client.metrics.height} <span className="text-sm font-normal">cm</span></p>
-                </div>
-              )}
-              {client.metrics.age && (
-                <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  <p className="text-xs text-gray-500 mb-1">Age</p>
-                  <p className="text-lg font-semibold text-gray-900 dark:text-white">{client.metrics.age} <span className="text-sm font-normal">yrs</span></p>
-                </div>
-              )}
-              {client.metrics.bloodGroup && (
-                <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  <p className="text-xs text-gray-500 mb-1">Blood</p>
-                  <p className="text-lg font-semibold text-gray-900 dark:text-white">{client.metrics.bloodGroup}</p>
-                </div>
-              )}
-            </div>
-
-            {/* Nutritional Requirements */}
-            {(client.metrics.energy || client.metrics.protein || client.metrics.carbs) && (
-              <div className="mt-4">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Nutritional Targets</p>
-                <div className="grid grid-cols-3 gap-2">
-                  {client.metrics.energy && (
-                    <div className="p-2 bg-orange-50 dark:bg-orange-950/30 rounded-lg text-center">
-                      <p className="text-xs text-orange-600 dark:text-orange-400">Energy</p>
-                      <p className="text-sm font-semibold text-orange-700 dark:text-orange-300">{client.metrics.energy}</p>
-                      <p className="text-xs text-orange-500">kcal</p>
-                    </div>
-                  )}
-                  {client.metrics.protein && (
-                    <div className="p-2 bg-blue-50 dark:bg-blue-950/30 rounded-lg text-center">
-                      <p className="text-xs text-blue-600 dark:text-blue-400">Protein</p>
-                      <p className="text-sm font-semibold text-blue-700 dark:text-blue-300">{client.metrics.protein}</p>
-                      <p className="text-xs text-blue-500">grams</p>
-                    </div>
-                  )}
-                  {client.metrics.carbs && (
-                    <div className="p-2 bg-green-50 dark:bg-green-950/30 rounded-lg text-center">
-                      <p className="text-xs text-green-600 dark:text-green-400">Carbs</p>
-                      <p className="text-sm font-semibold text-green-700 dark:text-green-300">{client.metrics.carbs}</p>
-                      <p className="text-xs text-green-500">grams</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Additional Info */}
-            <div className="mt-4 space-y-3">
-              {client.metrics.foodPreference && (
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    <span className="font-medium">Food Preference:</span>{' '}
-                    <span className="capitalize">{client.metrics.foodPreference === 'non-veg' ? 'Non-Vegetarian' : client.metrics.foodPreference}</span>
-                  </p>
-                </div>
-              )}
-              {client.metrics.goal && (
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    <span className="font-medium">Goal:</span> {client.metrics.goal}
-                  </p>
-                </div>
-              )}
-              {client.metrics.allergies && (
-                <div className="p-3 bg-red-50 dark:bg-red-950/30 rounded-lg border border-red-200 dark:border-red-800">
-                  <p className="text-sm text-red-800 dark:text-red-200 flex items-start gap-2">
-                    <span className="shrink-0">⚠️</span>
-                    <div>
-                      <span className="font-medium">Allergies:</span> {client.metrics.allergies}
-                    </div>
-                  </p>
-                </div>
-              )}
-              {client.metrics.notes && (
-                <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  <p className="text-sm text-gray-600 dark:text-gray-400 flex items-start gap-2">
-                    <span className="shrink-0">📝</span>
-                    <span>{client.metrics.notes}</span>
-                  </p>
-                </div>
-              )}
-            </div>
           </CardContent>
         </Card>
 

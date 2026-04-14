@@ -477,26 +477,26 @@ function ClientsPageContent() {
             {filteredClients.map((client) => (
               <Card key={client.id} className="hover:shadow-lg transition-all border border-emerald-100 dark:border-gray-700 hover:border-teal-200 dark:hover:border-teal-800 group">
                 <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
+                  <div className="flex items-start justify-between gap-2">
                     <div
-                      className="flex items-center gap-3 flex-1 cursor-pointer"
+                      className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer"
                       onClick={() => router.push(`/clients/${client.id}`)}
                     >
-                      <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-teal-400 rounded-full flex items-center justify-center shadow-md">
+                      <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-teal-400 rounded-full flex items-center justify-center shadow-md shrink-0">
                         <span className="text-white font-semibold text-lg">
                           {client.name.charAt(0).toUpperCase()}
                         </span>
                       </div>
-                      <div>
-                        <CardTitle className="text-lg">{client.name}</CardTitle>
+                      <div className="min-w-0 flex-1">
+                        <CardTitle className="text-lg truncate">{client.name}</CardTitle>
                         {client.metrics.goal && (
-                          <CardDescription className="text-xs">
+                          <CardDescription className="text-xs truncate">
                             Goal: {client.metrics.goal}
                           </CardDescription>
                         )}
                       </div>
                     </div>
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex gap-1 shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                       <Button
                         size="icon"
                         variant="ghost"
