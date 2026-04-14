@@ -21,7 +21,8 @@ export const metadata: Metadata = {
     telephone: false,
   },
   icons: {
-    icon: "/Taste Of Health Logo.png",
+    icon: "/Taste Of Health Logo.ico",
+    shortcut: "/Taste Of Health Logo.ico",
     apple: "/Taste Of Health Logo.png",
   },
 };
@@ -42,8 +43,8 @@ export default function RootLayout({
   return (
     <html lang="en" className={inter.className}>
       <head>
-        <link rel="icon" href="/icon-192.png" sizes="192x192" />
-        <link rel="apple-touch-icon" href="/icon-192.png" />
+        <link rel="icon" href="/Taste Of Health Logo.ico" sizes="any" />
+        <link rel="apple-touch-icon" href="/Taste Of Health Logo.png" />
       </head>
       <body className="min-h-screen bg-gray-50 antialiased">
         <AuthProvider>

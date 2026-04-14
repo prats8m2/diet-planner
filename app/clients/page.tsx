@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Plus, Search, User, MoreVertical, LogOut } from "lucide-react";
+import { Plus, Search, User, MoreVertical, LogOut, Eye, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,6 +33,20 @@ function ClientsPageContent() {
   const [newClientName, setNewClientName] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [clientMetrics, setClientMetrics] = useState({
+    weight: "",
+    height: "",
+    age: "",
+    bloodGroup: "",
+    dietaryRestrictions: [] as string[],
+    healthConditions: [] as string[],
+    goal: "",
+    allergies: "",
+    notes: "",
+    foodPreference: ""
+  });
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [editClientMetrics, setEditClientMetrics] = useState({
     weight: "",
     height: "",
     age: "",
@@ -140,6 +154,61 @@ function ClientsPageContent() {
       }
     } catch (error) {
       console.error("Failed to delete client:", error);
+    }
+  };
+
+  const handleEditClient = (client: Client) => {
+    setEditingClient(client);
+    setEditClientMetrics({
+      weight: client.metrics.weight?.toString() || "",
+      height: client.metrics.height?.toString() || "",
+      age: client.metrics.age?.toString() || "",
+      bloodGroup: client.metrics.bloodGroup || "",
+      dietaryRestrictions: client.metrics.dietaryRestrictions || [],
+      healthConditions: client.metrics.healthConditions || [],
+      goal: client.metrics.goal || "",
+      allergies: client.metrics.allergies || "",
+      notes: client.metrics.notes || "",
+      foodPreference: client.metrics.foodPreference || ""
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateClient = async () => {
+    if (!editingClient) return;
+
+    try {
+      const weight = editClientMetrics.weight ? parseFloat(editClientMetrics.weight) : undefined;
+      const height = editClientMetrics.height ? parseFloat(editClientMetrics.height) : undefined;
+
+      const response = await fetch(`/api/clients/${editingClient.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: editingClient.name,
+          metrics: {
+            weight,
+            height,
+            age: editClientMetrics.age ? parseInt(editClientMetrics.age) : undefined,
+            bloodGroup: editClientMetrics.bloodGroup || undefined,
+            dietaryRestrictions: editClientMetrics.dietaryRestrictions,
+            healthConditions: editClientMetrics.healthConditions,
+            goal: editClientMetrics.goal || undefined,
+            allergies: editClientMetrics.allergies || undefined,
+            notes: editClientMetrics.notes || undefined,
+            foodPreference: editClientMetrics.foodPreference || undefined,
+            bmi: weight && height ? calculateBMI(weight, height) : undefined
+          }
+        })
+      });
+
+      if (response.ok) {
+        setIsEditDialogOpen(false);
+        setEditingClient(null);
+        loadClients();
+      }
+    } catch (error) {
+      console.error("Failed to update client:", error);
     }
   };
 
@@ -406,45 +475,87 @@ function ClientsPageContent() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredClients.map((client) => (
-              <Link key={client.id} href={`/clients/${client.id}`}>
-                <Card className="hover:shadow-lg transition-all cursor-pointer border border-emerald-100 dark:border-gray-700 hover:border-teal-200 dark:hover:border-teal-800">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-teal-400 rounded-full flex items-center justify-center shadow-md">
-                          <span className="text-white font-semibold text-lg">
-                            {client.name.charAt(0).toUpperCase()}
-                          </span>
-                        </div>
-                        <div>
-                          <CardTitle className="text-lg">{client.name}</CardTitle>
-                          {client.metrics.goal && (
-                            <CardDescription className="text-xs">
-                              Goal: {client.metrics.goal}
-                            </CardDescription>
-                          )}
-                        </div>
+              <Card key={client.id} className="hover:shadow-lg transition-all border border-emerald-100 dark:border-gray-700 hover:border-teal-200 dark:hover:border-teal-800 group">
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div
+                      className="flex items-center gap-3 flex-1 cursor-pointer"
+                      onClick={() => router.push(`/clients/${client.id}`)}
+                    >
+                      <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-teal-400 rounded-full flex items-center justify-center shadow-md">
+                        <span className="text-white font-semibold text-lg">
+                          {client.name.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg">{client.name}</CardTitle>
+                        {client.metrics.goal && (
+                          <CardDescription className="text-xs">
+                            Goal: {client.metrics.goal}
+                          </CardDescription>
+                        )}
                       </div>
                     </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center justify-between text-sm">
-                      {client.metrics.weight && client.metrics.height ? (
-                        <div className="flex gap-3">
-                          <span className="text-gray-600 dark:text-gray-400">
-                            {client.metrics.weight} kg
-                          </span>
-                          <span className="text-gray-600 dark:text-gray-400">
-                            {client.metrics.height} cm
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-gray-400">No details yet</span>
-                      )}
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/clients/${client.id}`);
+                        }}
+                        title="View"
+                      >
+                        <Eye className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditClient(client);
+                        }}
+                        title="Edit"
+                      >
+                        <Edit className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8 hover:bg-red-50 dark:hover:bg-red-900/20"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteClient(client.id);
+                        }}
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                      </Button>
                     </div>
-                  </CardContent>
-                </Card>
-              </Link>
+                  </div>
+                </CardHeader>
+                <CardContent
+                  className="cursor-pointer"
+                  onClick={() => router.push(`/clients/${client.id}`)}
+                >
+                  <div className="flex items-center justify-between text-sm">
+                    {client.metrics.weight && client.metrics.height ? (
+                      <div className="flex gap-3">
+                        <span className="text-gray-600 dark:text-gray-400">
+                          {client.metrics.weight} kg
+                        </span>
+                        <span className="text-gray-600 dark:text-gray-400">
+                          {client.metrics.height} cm
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-gray-400">No details yet</span>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         )}
@@ -487,6 +598,182 @@ function ClientsPageContent() {
           </Link>
         </div>
       </nav>
+
+      {/* Edit Client Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Client</DialogTitle>
+            <DialogDescription>
+              Update client information
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label htmlFor="edit-name">Client Name</Label>
+              <Input
+                id="edit-name"
+                value={editingClient?.name || ''}
+                disabled
+                className="mt-1 bg-gray-50 dark:bg-gray-800"
+              />
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <Label htmlFor="edit-weight">Weight (kg)</Label>
+                <Input
+                  id="edit-weight"
+                  type="number"
+                  value={editClientMetrics.weight}
+                  onChange={(e) => setEditClientMetrics({ ...editClientMetrics, weight: e.target.value })}
+                  placeholder="70"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-height">Height (cm)</Label>
+                <Input
+                  id="edit-height"
+                  type="number"
+                  value={editClientMetrics.height}
+                  onChange={(e) => setEditClientMetrics({ ...editClientMetrics, height: e.target.value })}
+                  placeholder="170"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-age">Age</Label>
+                <Input
+                  id="edit-age"
+                  type="number"
+                  value={editClientMetrics.age}
+                  onChange={(e) => setEditClientMetrics({ ...editClientMetrics, age: e.target.value })}
+                  placeholder="30"
+                  className="mt-1"
+                />
+              </div>
+            </div>
+
+            {/* Live BMI Indicator */}
+            {editClientMetrics.weight && editClientMetrics.height && (
+              <div className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 rounded-lg p-3 border border-emerald-100 dark:border-emerald-900">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Calculated BMI</p>
+                    <p className="text-lg font-bold text-gray-900 dark:text-white">
+                      {calculateBMI(parseFloat(editClientMetrics.weight), parseFloat(editClientMetrics.height))}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Status</p>
+                    <p className={`text-sm font-semibold ${
+                      calculateBMI(parseFloat(editClientMetrics.weight), parseFloat(editClientMetrics.height)) < 18.5 ? 'text-emerald-600' :
+                      calculateBMI(parseFloat(editClientMetrics.weight), parseFloat(editClientMetrics.height)) < 25 ? 'text-emerald-600' :
+                      calculateBMI(parseFloat(editClientMetrics.weight), parseFloat(editClientMetrics.height)) < 30 ? 'text-teal-600' : 'text-teal-700'
+                    }`}>
+                      {calculateBMI(parseFloat(editClientMetrics.weight), parseFloat(editClientMetrics.height)) < 18.5 ? 'Underweight' :
+                       calculateBMI(parseFloat(editClientMetrics.weight), parseFloat(editClientMetrics.height)) < 25 ? 'Normal' :
+                       calculateBMI(parseFloat(editClientMetrics.weight), parseFloat(editClientMetrics.height)) < 30 ? 'Overweight' : 'Obese'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div>
+              <Label htmlFor="edit-bloodGroup">Blood Group</Label>
+              <select
+                id="edit-bloodGroup"
+                value={editClientMetrics.bloodGroup}
+                onChange={(e) => setEditClientMetrics({ ...editClientMetrics, bloodGroup: e.target.value })}
+                className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg bg-white dark:bg-gray-800 dark:border-gray-600"
+              >
+                <option value="">Select blood group</option>
+                <option value="A+">A+</option>
+                <option value="A-">A-</option>
+                <option value="B+">B+</option>
+                <option value="B-">B-</option>
+                <option value="O+">O+</option>
+                <option value="O-">O-</option>
+                <option value="AB+">AB+</option>
+                <option value="AB-">AB-</option>
+              </select>
+            </div>
+
+            <div>
+              <Label htmlFor="edit-foodPreference">Food Preference</Label>
+              <select
+                id="edit-foodPreference"
+                value={editClientMetrics.foodPreference}
+                onChange={(e) => setEditClientMetrics({ ...editClientMetrics, foodPreference: e.target.value })}
+                className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg bg-white dark:bg-gray-800 dark:border-gray-600"
+              >
+                <option value="">Select preference</option>
+                <option value="veg">Vegetarian</option>
+                <option value="eggetarian">Eggetarian</option>
+                <option value="non-veg">Non-Vegetarian</option>
+              </select>
+            </div>
+
+            <div>
+              <Label htmlFor="edit-goal">Goal</Label>
+              <select
+                id="edit-goal"
+                value={editClientMetrics.goal}
+                onChange={(e) => setEditClientMetrics({ ...editClientMetrics, goal: e.target.value })}
+                className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg bg-white dark:bg-gray-800 dark:border-gray-600"
+              >
+                <option value="">Select goal</option>
+                <option value="Weight Loss">Weight Loss</option>
+                <option value="Weight Gain">Weight Gain</option>
+                <option value="Maintenance">Maintenance</option>
+                <option value="Muscle Gain">Muscle Gain</option>
+                <option value="General Health">General Health</option>
+              </select>
+            </div>
+
+            <div>
+              <Label htmlFor="edit-allergies">Allergies</Label>
+              <Textarea
+                id="edit-allergies"
+                value={editClientMetrics.allergies}
+                onChange={(e) => setEditClientMetrics({ ...editClientMetrics, allergies: e.target.value })}
+                placeholder="List any allergies..."
+                className="mt-1"
+                rows={2}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="edit-notes">Notes</Label>
+              <Textarea
+                id="edit-notes"
+                value={editClientMetrics.notes}
+                onChange={(e) => setEditClientMetrics({ ...editClientMetrics, notes: e.target.value })}
+                placeholder="Additional notes..."
+                className="mt-1"
+                rows={2}
+              />
+            </div>
+
+            <div className="flex gap-2 justify-end pt-4 border-t">
+              <Button
+                variant="outline"
+                onClick={() => setIsEditDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleUpdateClient}
+                className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600"
+              >
+                Save Changes
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Add padding for bottom nav */}
       <div className="h-16" />
