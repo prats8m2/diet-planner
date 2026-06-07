@@ -284,6 +284,7 @@ export const dietPlanOps = {
       client_id: row.client_id as number,
       week_start: row.week_start as string,
       meals: JSON.parse((row.meals as string) || '{}'),
+      is_active: Boolean(row.is_active),
       created_at: row.created_at as string
     }));
   },
@@ -301,6 +302,7 @@ export const dietPlanOps = {
       client_id: row.client_id as number,
       week_start: row.week_start as string,
       meals: JSON.parse((row.meals as string) || '{}'),
+      is_active: Boolean(row.is_active),
       created_at: row.created_at as string
     };
   },
@@ -318,14 +320,21 @@ export const dietPlanOps = {
       client_id: row.client_id as number,
       week_start: row.week_start as string,
       meals: JSON.parse((row.meals as string) || '{}'),
+      is_active: Boolean(row.is_active),
       created_at: row.created_at as string
     };
   },
 
   create: async (clientId: number, weekStart: string, meals: WeeklyMeals): Promise<DietPlan> => {
     await ensureDb();
+    // First deactivate all existing plans for this client
+    await db.execute({
+      sql: 'UPDATE diet_plans SET is_active = 0 WHERE client_id = ?',
+      args: [clientId]
+    });
+    // Create new plan and set it as active
     const result = await db.execute({
-      sql: 'INSERT INTO diet_plans (client_id, week_start, meals) VALUES (?, ?, ?)',
+      sql: 'INSERT INTO diet_plans (client_id, week_start, meals, is_active) VALUES (?, ?, ?, 1)',
       args: [clientId, weekStart, JSON.stringify(meals)]
     });
     return (await dietPlanOps.getById(Number(result.lastInsertRowid)))!;
@@ -374,6 +383,7 @@ export const dietPlanOps = {
       client_id: row.client_id as number,
       week_start: row.week_start as string,
       meals: JSON.parse((row.meals as string) || '{}'),
+      is_active: Boolean(row.is_active),
       created_at: row.created_at as string
     };
   },
@@ -392,6 +402,7 @@ export const dietPlanOps = {
       client_id: row.client_id as number,
       week_start: row.week_start as string,
       meals: JSON.parse((row.meals as string) || '{}'),
+      is_active: Boolean(row.is_active),
       created_at: row.created_at as string
     }));
   }

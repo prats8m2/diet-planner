@@ -84,7 +84,14 @@ export function FoodItemAutocomplete({
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     // Only handle keyboard navigation when there are filtered suggestions
-    if (filteredSuggestions.length === 0) return;
+    if (filteredSuggestions.length === 0) {
+      // If no suggestions but user has typed something and presses Enter, accept the value
+      if (e.key === 'Enter' && value.trim()) {
+        e.preventDefault();
+        setShowDropdown(false);
+      }
+      return;
+    }
 
     switch (e.key) {
       case 'ArrowDown':
@@ -101,6 +108,9 @@ export function FoodItemAutocomplete({
         e.preventDefault();
         if (selectedIndex >= 0 && filteredSuggestions[selectedIndex]) {
           handleSelect(filteredSuggestions[selectedIndex]);
+        } else {
+          // If no suggestion is selected, just close the dropdown (keep the typed value)
+          setShowDropdown(false);
         }
         break;
       case 'Escape':

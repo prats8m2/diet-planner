@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
-import type { Client, DietPlan, FoodItem } from '@/types';
+import type { Client, DietPlan, FoodItem, MealOption } from '@/types';
 import { LOGO_BASE64 } from './logo';
 
 interface Meal {
   time?: string;
   items: FoodItem[];
+  options?: MealOption[];
   notes?: string;
 }
 
@@ -12,6 +13,7 @@ interface DayMeals {
   preWorkout?: Meal;
   postWorkout?: Meal;
   breakfast?: Meal;
+  midMeal?: Meal;
   lunch?: Meal;
   snacks?: Meal;
   dinner?: Meal;
@@ -69,6 +71,7 @@ function generateHTML(client: Client, dietPlan: DietPlan, exportType: 'daywise' 
     preWorkout: 'Pre Workout',
     postWorkout: 'Post Workout',
     breakfast: 'Breakfast',
+    midMeal: 'Mid Meal',
     lunch: 'Lunch',
     snacks: 'Snacks',
     dinner: 'Dinner',
@@ -362,6 +365,7 @@ function generateHTML(client: Client, dietPlan: DietPlan, exportType: 'daywise' 
     .meal-card.preWorkout .meal-card-header { background: #fef9c3; }
     .meal-card.postWorkout .meal-card-header { background: #d1fae5; }
     .meal-card.breakfast .meal-card-header { background: #fef2f2; }
+    .meal-card.midMeal .meal-card-header { background: #ffedd5; }
     .meal-card.lunch .meal-card-header { background: #ecfdf5; }
     .meal-card.snacks .meal-card-header { background: #fdf2f8; }
     .meal-card.dinner .meal-card-header { background: #f5f3ff; }
@@ -454,6 +458,121 @@ function generateHTML(client: Client, dietPlan: DietPlan, exportType: 'daywise' 
     .meal-notes::before {
       content: 'Note: ';
       font-weight: 600;
+    }
+
+    /* Meal Options */
+    .meal-options-divider {
+      margin: 12px 16px 8px 16px;
+      padding: 6px 12px;
+      background: #eff6ff;
+      border-top: 1px solid #bfdbfe;
+      border-bottom: 1px solid #bfdbfe;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #1e40af;
+      text-align: center;
+    }
+
+    .meal-option {
+      margin: 8px 16px;
+      padding: 10px 14px;
+      background: #ffffff;
+      border: 1.5px solid #d1d5db;
+      border-radius: 6px;
+    }
+
+    .meal-option-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      padding-bottom: 6px;
+      border-bottom: 1px dashed #d1d5db;
+    }
+
+    .meal-option-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #374151;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .meal-option-number {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      background: #6b7280;
+      color: white;
+      border-radius: 50%;
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .meal-option-meta {
+      display: flex;
+      gap: 12px;
+      font-size: 11px;
+      color: #6b7280;
+    }
+
+    .meal-option-items {
+      padding-left: 12px;
+      border-left: 3px solid #d1d5db;
+    }
+
+    .meal-option-item {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      padding: 6px 0;
+      border-bottom: 1px dotted #bfdbfe;
+    }
+
+    .meal-option-item:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .meal-option-item:first-child {
+      padding-top: 0;
+    }
+
+    .meal-option-item::before {
+      content: '•';
+      color: #3b82f6;
+      font-size: 14px;
+      font-weight: bold;
+      margin-right: 6px;
+    }
+
+    .meal-option-item-name {
+      font-size: 12px;
+      font-weight: 500;
+      color: #1e3a8a;
+      flex: 1;
+    }
+
+    .meal-option-item-meta {
+      display: flex;
+      gap: 10px;
+      font-size: 10px;
+      color: #60a5fa;
+    }
+
+    .meal-option-notes {
+      margin-top: 8px;
+      padding: 8px 10px;
+      background: #fef3c7;
+      border-left: 3px solid #f59e0b;
+      border-radius: 4px;
+      font-size: 11px;
+      color: #92400e;
     }
 
     /* Footer */
@@ -687,7 +806,7 @@ function generateDaywiseContent(dietPlan: DietPlan, days: string[], mealLabels: 
 
     const mealsPresent = Object.keys(dayMeals).filter(key => {
       const meal = dayMeals[key as keyof DayMeals];
-      return meal && meal.items && meal.items.length > 0;
+      return meal && ((meal.items && meal.items.length > 0) || (meal.options && meal.options.length > 0));
     });
 
     if (mealsPresent.length === 0) return;
@@ -702,26 +821,61 @@ function generateDaywiseContent(dietPlan: DietPlan, days: string[], mealLabels: 
 
     mealsPresent.forEach((mealType) => {
       const meal = dayMeals[mealType as keyof DayMeals] as Meal;
-      if (meal && meal.items && meal.items.length > 0) {
+      if (meal && (meal.items.length > 0 || (meal.options && meal.options.length > 0))) {
         content += `
           <div class="meal-card ${mealType}">
             <div class="meal-card-header">
               <div class="meal-title">${mealLabels[mealType]}</div>
               ${meal.time ? `<div class="meal-time">${formatTime(meal.time)}</div>` : ''}
             </div>
-            <div class="food-list">
-              ${meal.items.map(item => `
-                <div class="food-item">
-                  <div class="food-name">${item.name}</div>
-                  ${item.portions || item.calories ? `
-                    <div class="food-meta">
-                      ${item.portions ? `<span><span class="food-meta-label">Portion:</span> ${item.portions}</span>` : ''}
-                      ${item.calories ? `<span><span class="food-meta-label">Cal:</span> ${item.calories}</span>` : ''}
+            ${meal.items.length > 0 ? `
+              <div class="food-list">
+                ${meal.items.map(item => `
+                  <div class="food-item">
+                    <div class="food-name">${item.name}</div>
+                    ${item.portions || item.calories ? `
+                      <div class="food-meta">
+                        ${item.portions ? `<span><span class="food-meta-label">Portion:</span> ${item.portions}</span>` : ''}
+                        ${item.calories ? `<span><span class="food-meta-label">Cal:</span> ${item.calories}</span>` : ''}
+                      </div>
+                    ` : ''}
+                  </div>
+                `).join('')}
+              </div>
+            ` : ''}
+            ${meal.options && meal.options.length > 0 ? `
+              ${meal.items.length > 0 ? '<div class="meal-options-divider">OR Choose From:</div>' : ''}
+              ${meal.options.map((option, optionIndex) => `
+                <div class="meal-option">
+                  <div class="meal-option-header">
+                    <div class="meal-option-title">
+                      <span class="meal-option-number">${optionIndex + 1}</span>
+                      ${option.name}
                     </div>
-                  ` : ''}
+                    ${option.portions || option.calories ? `
+                      <div class="meal-option-meta">
+                        ${option.portions ? `<span>📊 ${option.portions}</span>` : ''}
+                        ${option.calories ? `<span>🔥 ${option.calories} cal</span>` : ''}
+                      </div>
+                    ` : ''}
+                  </div>
+                  <div class="meal-option-items">
+                    ${option.items.map(item => `
+                      <div class="meal-option-item">
+                        <div class="meal-option-item-name">${item.name}</div>
+                        ${item.portions || item.calories ? `
+                          <div class="meal-option-item-meta">
+                            ${item.portions ? `<span>📊 ${item.portions}</span>` : ''}
+                            ${item.calories ? `<span>🔥 ${item.calories} cal</span>` : ''}
+                          </div>
+                        ` : ''}
+                      </div>
+                    `).join('')}
+                  </div>
+                  ${option.notes ? `<div class="meal-option-notes">📝 ${option.notes}</div>` : ''}
                 </div>
               `).join('')}
-            </div>
+            ` : ''}
             ${meal.notes ? `<div class="meal-notes">${meal.notes}</div>` : ''}
           </div>
         `;
@@ -736,17 +890,24 @@ function generateDaywiseContent(dietPlan: DietPlan, days: string[], mealLabels: 
 
 function generateMealwiseContent(dietPlan: DietPlan, days: string[], mealLabels: Record<string, string>): string {
   let content = '';
-  const mealTypes = ['preWorkout', 'postWorkout', 'breakfast', 'lunch', 'snacks', 'dinner', 'afterDinner'] as const;
+  const mealTypes = ['preWorkout', 'postWorkout', 'breakfast', 'midMeal', 'lunch', 'snacks', 'dinner', 'afterDinner'] as const;
 
   mealTypes.forEach(mealType => {
-    const mealGroups = new Map<string, { time?: string, notes?: string, items: FoodItem[] }>();
+    const mealGroups = new Map<string, { time?: string, notes?: string, items: FoodItem[], options?: MealOption[] }>();
 
     days.forEach(day => {
       const dayMeal = dietPlan.meals[day]?.[mealType];
-      if (dayMeal && dayMeal.items && dayMeal.items.length > 0) {
-        const mealKey = dayMeal.items.map(item => item.name).sort().join('|');
+      if (dayMeal && ((dayMeal.items && dayMeal.items.length > 0) || (dayMeal.options && dayMeal.options.length > 0))) {
+        const itemsKey = dayMeal.items?.map(item => item.name).sort().join('|') || '';
+        const optionsKey = dayMeal.options?.map(opt => opt.items.map(i => i.name).join(',')).join('||') || '';
+        const mealKey = `${itemsKey}__${optionsKey}`;
         if (!mealGroups.has(mealKey)) {
-          mealGroups.set(mealKey, { time: dayMeal.time, notes: dayMeal.notes, items: dayMeal.items });
+          mealGroups.set(mealKey, { 
+            time: dayMeal.time, 
+            notes: dayMeal.notes, 
+            items: dayMeal.items || [],
+            options: dayMeal.options || []
+          });
         }
       }
     });
@@ -768,19 +929,54 @@ function generateMealwiseContent(dietPlan: DietPlan, days: string[], mealLabels:
               <div class="meal-time">${formatTime(group.time)}</div>
             </div>
           ` : ''}
-          <div class="food-list">
-            ${group.items.map(item => `
-              <div class="food-item">
-                <div class="food-name">${item.name}</div>
-                ${item.portions || item.calories ? `
-                  <div class="food-meta">
-                    ${item.portions ? `<span><span class="food-meta-label">Portion:</span> ${item.portions}</span>` : ''}
-                    ${item.calories ? `<span><span class="food-meta-label">Cal:</span> ${item.calories}</span>` : ''}
+          ${group.items.length > 0 ? `
+            <div class="food-list">
+              ${group.items.map(item => `
+                <div class="food-item">
+                  <div class="food-name">${item.name}</div>
+                  ${item.portions || item.calories ? `
+                    <div class="food-meta">
+                      ${item.portions ? `<span><span class="food-meta-label">Portion:</span> ${item.portions}</span>` : ''}
+                      ${item.calories ? `<span><span class="food-meta-label">Cal:</span> ${item.calories}</span>` : ''}
+                    </div>
+                  ` : ''}
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
+          ${group.options && group.options.length > 0 ? `
+            ${group.items.length > 0 ? '<div class="meal-options-divider">OR Choose From:</div>' : ''}
+            ${group.options.map((option, optionIndex) => `
+              <div class="meal-option">
+                <div class="meal-option-header">
+                  <div class="meal-option-title">
+                    <span class="meal-option-number">${optionIndex + 1}</span>
+                    ${option.name}
                   </div>
-                ` : ''}
+                  ${option.portions || option.calories ? `
+                    <div class="meal-option-meta">
+                      ${option.portions ? `<span>📊 ${option.portions}</span>` : ''}
+                      ${option.calories ? `<span>🔥 ${option.calories} cal</span>` : ''}
+                    </div>
+                  ` : ''}
+                </div>
+                <div class="meal-option-items">
+                  ${option.items.map(item => `
+                    <div class="meal-option-item">
+                      <div class="meal-option-item-name">${item.name}</div>
+                      ${item.portions || item.calories ? `
+                        <div class="meal-option-item-meta">
+                          ${item.portions ? `<span>📊 ${item.portions}</span>` : ''}
+                          ${item.calories ? `<span>🔥 ${item.calories} cal</span>` : ''}
+                        </div>
+                      ` : ''}
+                    </div>
+                  `).join('')}
+                </div>
+                ${option.notes ? `<div class="meal-option-notes">📝 ${option.notes}</div>` : ''}
               </div>
             `).join('')}
-          </div>
+          ` : ''}
           ${group.notes ? `<div class="meal-notes">${group.notes}</div>` : ''}
         </div>
       `;

@@ -14,13 +14,14 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FoodItemAutocomplete } from "@/components/FoodItemAutocomplete";
 import { useAuth } from "@/contexts/AuthContext";
-import type { Client, DietPlan, Meal, WeeklyMeals, MealType, FoodItem, MealTemplate } from "@/types";
+import type { Client, DietPlan, Meal, WeeklyMeals, MealType, FoodItem, MealOption, MealTemplate } from "@/types";
 
-const MEAL_TYPES: MealType[] = ['preWorkout', 'postWorkout', 'breakfast', 'lunch', 'snacks', 'dinner', 'afterDinner'];
+const MEAL_TYPES: MealType[] = ['preWorkout', 'postWorkout', 'breakfast', 'midMeal', 'lunch', 'snacks', 'dinner', 'afterDinner'];
 const MEAL_LABELS: Record<MealType, string> = {
   preWorkout: 'Pre Workout',
   postWorkout: 'Post Workout',
   breakfast: 'Breakfast',
+  midMeal: 'Mid Meal',
   lunch: 'Lunch',
   snacks: 'Snacks',
   dinner: 'Dinner',
@@ -30,6 +31,7 @@ const MEAL_DEFAULTS: Record<MealType, { time: string }> = {
   preWorkout: { time: '06:00' },
   postWorkout: { time: '07:30' },
   breakfast: { time: '08:00' },
+  midMeal: { time: '10:30' },
   lunch: { time: '13:00' },
   snacks: { time: '16:00' },
   dinner: { time: '19:00' },
@@ -71,7 +73,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
   const [isSavingClient, setIsSavingClient] = useState(false);
   const [editedClient, setEditedClient] = useState<Partial<Client>>({});
   const [showPlansList, setShowPlansList] = useState(false);
-  const [expandedMeals, setExpandedMeals] = useState<Set<MealType>>(new Set(['breakfast', 'lunch', 'dinner']));
+  const [expandedMeals, setExpandedMeals] = useState<Set<MealType>>(new Set(['breakfast', 'midMeal', 'lunch', 'dinner']));
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   
   // Template state
@@ -80,15 +82,16 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
   const [isSaveAsTemplateOpen, setIsSaveAsTemplateOpen] = useState(false);
   const [newTemplateName, setNewTemplateName] = useState('');
 
-  // Quick mode state - each meal has multiple items
-  const [quickMeals, setQuickMeals] = useState<Record<MealType, { time: string; items: FoodItem[]; notes?: string }>>({
-    preWorkout: { time: '06:00', items: [] },
-    postWorkout: { time: '07:30', items: [] },
-    breakfast: { time: '08:00', items: [] },
-    lunch: { time: '13:00', items: [] },
-    snacks: { time: '16:00', items: [] },
-    dinner: { time: '19:00', items: [] },
-    afterDinner: { time: '21:00', items: [] }
+  // Quick mode state - each meal has multiple options, each option can have multiple items
+  const [quickMeals, setQuickMeals] = useState<Record<MealType, { time: string; options?: MealOption[] }>>({
+    preWorkout: { time: '06:00', options: [] },
+    postWorkout: { time: '07:30', options: [] },
+    breakfast: { time: '08:00', options: [] },
+    midMeal: { time: '10:30', options: [] },
+    lunch: { time: '13:00', options: [] },
+    snacks: { time: '16:00', options: [] },
+    dinner: { time: '19:00', options: [] },
+    afterDinner: { time: '21:00', options: [] }
   });
 
   useEffect(() => {
@@ -105,11 +108,18 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
         setClient(data.client);
         // Only load diet plan if it exists and has actual content
         if (data.dietPlan && data.dietPlan.meals) {
-          // Check if the plan has any actual food items
+          // Check if the plan has any actual food items (either in old items array or new options array)
           const hasItems = Object.values(data.dietPlan.meals).some((dayMeals: any) =>
-            dayMeals && Object.values(dayMeals).some((meal: any) =>
-              meal && meal.items && meal.items.some((item: any) => item.name && item.name.trim())
-            )
+            dayMeals && Object.values(dayMeals).some((meal: any) => {
+              if (!meal) return false;
+              // Check old format (items array)
+              const hasOldItems = meal.items && meal.items.some((item: any) => item.name && item.name.trim());
+              // Check new format (options array)
+              const hasOptions = meal.options && meal.options.some((opt: any) => 
+                opt.items && opt.items.some((item: any) => item.name && item.name.trim())
+              );
+              return hasOldItems || hasOptions;
+            })
           );
 
           if (hasItems) {
@@ -117,14 +127,59 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
             // Load existing meals into quick mode
             const mondayMeals = data.dietPlan.meals.Monday;
             if (mondayMeals) {
+              // Convert old format (items array) to new format (options array)
+              const convertToOptions = (meal: any) => {
+                const options: MealOption[] = [];
+                // If there are old-style items, convert them to Option 1
+                if (meal?.items && meal.items.length > 0) {
+                  options.push({
+                    id: '1',
+                    name: 'Option 1',
+                    items: meal.items,
+                    portions: undefined,
+                    calories: undefined
+                  });
+                }
+                // Add any existing options
+                if (meal?.options) {
+                  options.push(...meal.options);
+                }
+                return options;
+              };
+
               setQuickMeals({
-                preWorkout: { time: mondayMeals.preWorkout?.time || '06:00', items: mondayMeals.preWorkout?.items || [] },
-                postWorkout: { time: mondayMeals.postWorkout?.time || '07:30', items: mondayMeals.postWorkout?.items || [] },
-                breakfast: { time: mondayMeals.breakfast?.time || '08:00', items: mondayMeals.breakfast?.items || [] },
-                lunch: { time: mondayMeals.lunch?.time || '13:00', items: mondayMeals.lunch?.items || [] },
-                snacks: { time: mondayMeals.snacks?.time || '16:00', items: mondayMeals.snacks?.items || [] },
-                dinner: { time: mondayMeals.dinner?.time || '19:00', items: mondayMeals.dinner?.items || [] },
-                afterDinner: { time: mondayMeals.afterDinner?.time || '21:00', items: mondayMeals.afterDinner?.items || [] }
+                preWorkout: { 
+                  time: mondayMeals.preWorkout?.time || '06:00', 
+                  options: convertToOptions(mondayMeals.preWorkout)
+                },
+                postWorkout: { 
+                  time: mondayMeals.postWorkout?.time || '07:30', 
+                  options: convertToOptions(mondayMeals.postWorkout)
+                },
+                breakfast: { 
+                  time: mondayMeals.breakfast?.time || '08:00', 
+                  options: convertToOptions(mondayMeals.breakfast)
+                },
+                midMeal: { 
+                  time: mondayMeals.midMeal?.time || '10:30', 
+                  options: convertToOptions(mondayMeals.midMeal)
+                },
+                lunch: { 
+                  time: mondayMeals.lunch?.time || '13:00', 
+                  options: convertToOptions(mondayMeals.lunch)
+                },
+                snacks: { 
+                  time: mondayMeals.snacks?.time || '16:00', 
+                  options: convertToOptions(mondayMeals.snacks)
+                },
+                dinner: { 
+                  time: mondayMeals.dinner?.time || '19:00', 
+                  options: convertToOptions(mondayMeals.dinner)
+                },
+                afterDinner: { 
+                  time: mondayMeals.afterDinner?.time || '21:00', 
+                  options: convertToOptions(mondayMeals.afterDinner)
+                }
               });
             }
           } else {
@@ -181,13 +236,13 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
   const createNewPlan = () => {
     // Reset to empty meals for a new plan
     setQuickMeals({
-      preWorkout: { time: '06:00', items: [] },
-      postWorkout: { time: '07:30', items: [] },
-      breakfast: { time: '08:00', items: [] },
-      lunch: { time: '13:00', items: [] },
-      snacks: { time: '16:00', items: [] },
-      dinner: { time: '19:00', items: [] },
-      afterDinner: { time: '21:00', items: [] }
+      preWorkout: { time: '06:00', options: [] },
+      postWorkout: { time: '07:30', options: [] },
+      breakfast: { time: '08:00', options: [] },
+      lunch: { time: '13:00', options: [] },
+      snacks: { time: '16:00', options: [] },
+      dinner: { time: '19:00', options: [] },
+      afterDinner: { time: '21:00', options: [] }
     });
     setDietPlan(null);
     setShowPlansList(false);
@@ -209,14 +264,58 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
   const applyTemplate = (template: MealTemplate) => {
     // Apply template meals to quickMeals
     const templateMeals = template.meals;
+    
+    // Convert old format to new format
+    const convertToOptions = (meal: any) => {
+      const options: MealOption[] = [];
+      if (meal?.items && meal.items.length > 0) {
+        options.push({
+          id: '1',
+          name: 'Option 1',
+          items: meal.items,
+          portions: undefined,
+          calories: undefined
+        });
+      }
+      if (meal?.options) {
+        options.push(...meal.options);
+      }
+      return options;
+    };
+
     setQuickMeals({
-      preWorkout: { time: templateMeals.preWorkout?.time || '06:00', items: templateMeals.preWorkout?.items || [] },
-      postWorkout: { time: templateMeals.postWorkout?.time || '07:30', items: templateMeals.postWorkout?.items || [] },
-      breakfast: { time: templateMeals.breakfast?.time || '08:00', items: templateMeals.breakfast?.items || [] },
-      lunch: { time: templateMeals.lunch?.time || '13:00', items: templateMeals.lunch?.items || [] },
-      snacks: { time: templateMeals.snacks?.time || '16:00', items: templateMeals.snacks?.items || [] },
-      dinner: { time: templateMeals.dinner?.time || '19:00', items: templateMeals.dinner?.items || [] },
-      afterDinner: { time: templateMeals.afterDinner?.time || '21:00', items: templateMeals.afterDinner?.items || [] }
+      preWorkout: { 
+        time: templateMeals.preWorkout?.time || '06:00', 
+        options: convertToOptions(templateMeals.preWorkout)
+      },
+      postWorkout: { 
+        time: templateMeals.postWorkout?.time || '07:30', 
+        options: convertToOptions(templateMeals.postWorkout)
+      },
+      breakfast: { 
+        time: templateMeals.breakfast?.time || '08:00', 
+        options: convertToOptions(templateMeals.breakfast)
+      },
+      midMeal: { 
+        time: templateMeals.midMeal?.time || '10:30', 
+        options: convertToOptions(templateMeals.midMeal)
+      },
+      lunch: { 
+        time: templateMeals.lunch?.time || '13:00', 
+        options: convertToOptions(templateMeals.lunch)
+      },
+      snacks: { 
+        time: templateMeals.snacks?.time || '16:00', 
+        options: convertToOptions(templateMeals.snacks)
+      },
+      dinner: { 
+        time: templateMeals.dinner?.time || '19:00', 
+        options: convertToOptions(templateMeals.dinner)
+      },
+      afterDinner: { 
+        time: templateMeals.afterDinner?.time || '21:00', 
+        options: convertToOptions(templateMeals.afterDinner)
+      }
     });
     setIsTemplateDialogOpen(false);
   };
@@ -245,37 +344,90 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
     }
   };
 
-  const addFoodItem = (mealType: MealType) => {
+  // Meal Option Management Functions
+  const addMealOption = (mealType: MealType) => {
+    const newOption: MealOption = {
+      id: Date.now().toString(),
+      name: `Option ${(quickMeals[mealType].options?.length || 0) + 1}`,
+      items: [{ name: '', portions: getDefaultPortion(mealType), calories: undefined }],
+      portions: undefined,
+      calories: undefined
+    };
+    
     setQuickMeals({
       ...quickMeals,
       [mealType]: {
         ...quickMeals[mealType],
-        items: [
-          ...quickMeals[mealType].items,
-          { name: '', portions: getDefaultPortion(mealType), calories: undefined }
-        ]
+        options: [...(quickMeals[mealType].options || []), newOption]
       }
     });
   };
 
-  const removeFoodItem = (mealType: MealType, index: number) => {
+  const removeMealOption = (mealType: MealType, optionId: string) => {
     setQuickMeals({
       ...quickMeals,
       [mealType]: {
         ...quickMeals[mealType],
-        items: quickMeals[mealType].items.filter((_, i) => i !== index)
+        options: (quickMeals[mealType].options || []).filter(opt => opt.id !== optionId)
       }
     });
   };
 
-  const updateFoodItem = (mealType: MealType, index: number, field: keyof FoodItem, value: string | number | undefined) => {
-    const updatedItems = [...quickMeals[mealType].items];
-    updatedItems[index] = { ...updatedItems[index], [field]: value };
+  const updateMealOption = (mealType: MealType, optionId: string, field: keyof MealOption, value: any) => {
     setQuickMeals({
       ...quickMeals,
       [mealType]: {
         ...quickMeals[mealType],
-        items: updatedItems
+        options: (quickMeals[mealType].options || []).map(opt =>
+          opt.id === optionId ? { ...opt, [field]: value } : opt
+        )
+      }
+    });
+  };
+
+  const addFoodItemToOption = (mealType: MealType, optionId: string) => {
+    setQuickMeals({
+      ...quickMeals,
+      [mealType]: {
+        ...quickMeals[mealType],
+        options: (quickMeals[mealType].options || []).map(opt =>
+          opt.id === optionId
+            ? { ...opt, items: [...opt.items, { name: '', portions: getDefaultPortion(mealType), calories: undefined }] }
+            : opt
+        )
+      }
+    });
+  };
+
+  const removeFoodItemFromOption = (mealType: MealType, optionId: string, itemIndex: number) => {
+    setQuickMeals({
+      ...quickMeals,
+      [mealType]: {
+        ...quickMeals[mealType],
+        options: (quickMeals[mealType].options || []).map(opt =>
+          opt.id === optionId
+            ? { ...opt, items: opt.items.filter((_, i) => i !== itemIndex) }
+            : opt
+        )
+      }
+    });
+  };
+
+  const updateFoodItemInOption = (mealType: MealType, optionId: string, itemIndex: number, field: keyof FoodItem, value: string | number | undefined) => {
+    setQuickMeals({
+      ...quickMeals,
+      [mealType]: {
+        ...quickMeals[mealType],
+        options: (quickMeals[mealType].options || []).map(opt =>
+          opt.id === optionId
+            ? {
+                ...opt,
+                items: opt.items.map((item, i) =>
+                  i === itemIndex ? { ...item, [field]: value } : item
+                )
+              }
+            : opt
+        )
       }
     });
   };
@@ -283,6 +435,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
   const getDefaultPortion = (mealType: MealType): string => {
     switch (mealType) {
       case 'breakfast': return '1 bowl';
+      case 'midMeal': return '1 serving';
       case 'lunch': return '1 plate';
       case 'dinner': return '1 plate';
       case 'snacks': return '1 serving';
@@ -291,13 +444,13 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
   };
 
   const handleSave = async () => {
-    // Validate that at least some items have names
-    const hasAnyItems = Object.values(quickMeals).some(meal =>
-      meal.items.some(item => item.name.trim())
+    // Validate that at least some options have content
+    const hasAnyContent = Object.values(quickMeals).some(meal =>
+      meal.options && meal.options.some(opt => opt.items.some(item => item.name.trim()))
     );
 
-    if (!hasAnyItems) {
-      alert('Please add at least one food item');
+    if (!hasAnyContent) {
+      alert('Please add at least one meal option with food items');
       return;
     }
 
@@ -305,10 +458,17 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
     DAYS.forEach(day => {
       meals[day] = {};
       MEAL_TYPES.forEach(mealType => {
+        const filteredOptions = (quickMeals[mealType].options || [])
+          .map(opt => ({
+            ...opt,
+            items: opt.items.filter(item => item.name.trim())
+          }))
+          .filter(opt => opt.items.length > 0); // Only include options with at least one item
+
         meals[day][mealType] = {
           time: quickMeals[mealType].time,
-          items: quickMeals[mealType].items.filter(item => item.name.trim()),
-          notes: quickMeals[mealType].notes
+          items: [], // Keep empty for backward compatibility
+          options: filteredOptions
         };
       });
     });
@@ -879,8 +1039,8 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
               <div className="space-y-3 sm:space-y-4">
                 {MEAL_TYPES.map((mealType) => {
                   const isExpanded = expandedMeals.has(mealType);
-                  const hasItems = quickMeals[mealType].items.some(item => item.name.trim());
-                  const itemCount = quickMeals[mealType].items.filter(item => item.name.trim()).length;
+                  const hasOptions = quickMeals[mealType].options && quickMeals[mealType].options!.length > 0;
+                  const optionCount = quickMeals[mealType].options?.length || 0;
 
                   return (
                     <Card key={mealType} className={`overflow-hidden transition-all ${
@@ -898,9 +1058,9 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                             <div className="flex-1 min-w-0">
                               <CardTitle className="text-base sm:text-lg flex items-center gap-2">
                                 {MEAL_LABELS[mealType]}
-                                {itemCount > 0 && (
+                                {optionCount > 0 && (
                                   <span className="text-xs px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full">
-                                    {itemCount} {itemCount === 1 ? 'item' : 'items'}
+                                    {optionCount} {optionCount === 1 ? 'option' : 'options'}
                                   </span>
                                 )}
                               </CardTitle>
@@ -944,48 +1104,122 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                             />
                           </div>
 
-                          {quickMeals[mealType].items.length === 0 ? (
-                            <div className="text-center py-6 text-gray-400">
-                              <UtensilsCrossed className="w-10 h-10 mx-auto mb-2 opacity-50" />
-                              <p className="text-sm">No items added yet</p>
-                            </div>
-                          ) : (
-                            <div className="space-y-2">
-                              {quickMeals[mealType].items.map((item, index) => (
-                                <div key={index} className="bg-white dark:bg-gray-900 rounded-lg border p-3 space-y-2">
+                          {/* Meal Options */}
+                          {quickMeals[mealType].options && quickMeals[mealType].options!.length > 0 ? (
+                            <div className="space-y-4">
+                              {quickMeals[mealType].options!.map((option) => (
+                                <div key={option.id} className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 space-y-3 border-2 border-blue-200 dark:border-blue-800">
                                   <div className="flex items-start gap-2">
-                                    <div className="flex-1 space-y-2">
-                                      <FoodItemAutocomplete
-                                        value={item.name}
-                                        onChange={(value) => updateFoodItem(mealType, index, 'name', value)}
-                                        placeholder="Food item name"
-                                      />
-                                      <div className="grid grid-cols-2 gap-2">
-                                        <Input
-                                          placeholder="Portion"
-                                          value={item.portions || ''}
-                                          onChange={(e) => updateFoodItem(mealType, index, 'portions', e.target.value)}
-                                        />
-                                        <Input
-                                          type="number"
-                                          placeholder="Calories"
-                                          value={item.calories || ''}
-                                          onChange={(e) => updateFoodItem(mealType, index, 'calories', e.target.value ? parseInt(e.target.value) : undefined)}
-                                        />
-                                      </div>
-                                    </div>
+                                    <Input
+                                      placeholder="Option name (e.g., Roti + Dal + Rice)"
+                                      value={option.name}
+                                      onChange={(e) => updateMealOption(mealType, option.id, 'name', e.target.value)}
+                                      className="flex-1 font-medium"
+                                    />
                                     <Button
                                       type="button"
                                       variant="ghost"
                                       size="sm"
-                                      onClick={() => removeFoodItem(mealType, index)}
-                                      className="shrink-0 text-red-500 hover:text-red-700 hover:bg-red-50 mt-6"
+                                      onClick={() => removeMealOption(mealType, option.id)}
+                                      className="shrink-0 text-red-500 hover:text-red-700 hover:bg-red-50"
                                     >
                                       <X className="w-4 h-4" />
                                     </Button>
                                   </div>
+
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <div>
+                                      <Label className="text-xs text-gray-600 dark:text-gray-400">Combined Portion</Label>
+                                      <Input
+                                        placeholder="e.g., 1 plate"
+                                        value={option.portions || ''}
+                                        onChange={(e) => updateMealOption(mealType, option.id, 'portions', e.target.value)}
+                                        className="mt-1"
+                                      />
+                                    </div>
+                                    <div>
+                                      <Label className="text-xs text-gray-600 dark:text-gray-400">Combined Calories</Label>
+                                      <Input
+                                        type="number"
+                                        placeholder="Total cal"
+                                        value={option.calories || ''}
+                                        onChange={(e) => updateMealOption(mealType, option.id, 'calories', e.target.value ? parseInt(e.target.value) : undefined)}
+                                        className="mt-1"
+                                      />
+                                    </div>
+                                  </div>
+
+                                  <div className="space-y-2">
+                                    <Label className="text-xs text-gray-600 dark:text-gray-400">Items in this option:</Label>
+                                    {option.items.map((item, itemIndex) => (
+                                      <div key={itemIndex} className="bg-white dark:bg-gray-900 rounded-lg border p-2 space-y-2">
+                                        <div className="flex items-start gap-2">
+                                          <div className="flex-1 space-y-2">
+                                            <FoodItemAutocomplete
+                                              value={item.name}
+                                              onChange={(value) => updateFoodItemInOption(mealType, option.id, itemIndex, 'name', value)}
+                                              placeholder="Food item name"
+                                            />
+                                            <div className="grid grid-cols-2 gap-2">
+                                              <Input
+                                                placeholder="Portion"
+                                                value={item.portions || ''}
+                                                onChange={(e) => updateFoodItemInOption(mealType, option.id, itemIndex, 'portions', e.target.value)}
+                                                className="text-sm"
+                                              />
+                                              <Input
+                                                type="number"
+                                                placeholder="Calories"
+                                                value={item.calories || ''}
+                                                onChange={(e) => updateFoodItemInOption(mealType, option.id, itemIndex, 'calories', e.target.value ? parseInt(e.target.value) : undefined)}
+                                                className="text-sm"
+                                              />
+                                            </div>
+                                          </div>
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => removeFoodItemFromOption(mealType, option.id, itemIndex)}
+                                            className="shrink-0 text-red-500 hover:text-red-700 hover:bg-red-50 mt-6"
+                                          >
+                                            <X className="w-3 h-3" />
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    ))}
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => addFoodItemToOption(mealType, option.id)}
+                                      className="w-full border-dashed text-xs"
+                                    >
+                                      <Plus className="w-3 h-3 mr-1" />
+                                      Add Item to Option
+                                    </Button>
+                                  </div>
+
+                                  {/* Notes for this option */}
+                                  <div>
+                                    <Label htmlFor={`${mealType}-${option.id}-notes`} className="text-xs text-gray-600 dark:text-gray-400">Notes for this option (optional)</Label>
+                                    <Textarea
+                                      id={`${mealType}-${option.id}-notes`}
+                                      value={option.notes || ''}
+                                      onChange={(e) => updateMealOption(mealType, option.id, 'notes', e.target.value)}
+                                      placeholder="e.g., Best for weight loss, High protein option..."
+                                      rows={2}
+                                      className="mt-1 text-sm"
+                                    />
+                                  </div>
                                 </div>
                               ))}
+                            </div>
+                          ) : (
+                            <div className="text-center py-6 text-gray-400">
+                              <UtensilsCrossed className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                              <p className="text-sm">No meal options added yet</p>
+                              <p className="text-xs mt-1">Click "Add Meal Option" below to create one</p>
                             </div>
                           )}
 
@@ -993,27 +1227,12 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                             type="button"
                             variant="outline"
                             size="sm"
-                            onClick={() => addFoodItem(mealType)}
-                            className="w-full border-dashed"
+                            onClick={() => addMealOption(mealType)}
+                            className="w-full border-2 border-dashed border-emerald-400 dark:border-emerald-600 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/40 font-semibold py-6"
                           >
-                            <Plus className="w-4 h-4 mr-2" />
-                            Add Item
+                            <Plus className="w-5 h-5 mr-2" />
+                            Add Meal Option
                           </Button>
-
-                          <div>
-                            <Label htmlFor={`${mealType}-notes`} className="text-sm">Notes (optional)</Label>
-                            <Textarea
-                              id={`${mealType}-notes`}
-                              value={quickMeals[mealType].notes || ''}
-                              onChange={(e) => setQuickMeals({
-                                ...quickMeals,
-                                [mealType]: { ...quickMeals[mealType], notes: e.target.value }
-                              })}
-                              placeholder="Any special instructions..."
-                              className="mt-1"
-                              rows={2}
-                            />
-                          </div>
                         </CardContent>
                       )}
                     </Card>
@@ -1025,8 +1244,8 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
               <div className="space-y-3 sm:space-y-4">
                 {MEAL_TYPES.map((mealType) => {
                   const meal = quickMeals[mealType];
-                  const hasItems = meal.items.some(item => item.name.trim());
-                  const itemCount = meal.items.filter(item => item.name.trim()).length;
+                  const hasOptions = meal.options && meal.options.length > 0;
+                  const optionCount = meal.options?.filter(opt => opt.items.some(item => item.name.trim())).length || 0;
                   const isExpanded = expandedMeals.has(mealType);
 
                   return (
@@ -1040,23 +1259,28 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3 flex-1 min-w-0">
                             <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
-                              hasItems
+                              hasOptions
                                 ? 'bg-gradient-to-br from-emerald-400 to-teal-500'
                                 : 'bg-gray-200 dark:bg-gray-700'
                             }`}>
-                              <UtensilsCrossed className={`w-5 h-5 ${hasItems ? 'text-white' : 'text-gray-400'}`} />
+                              <UtensilsCrossed className={`w-5 h-5 ${hasOptions ? 'text-white' : 'text-gray-400'}`} />
                             </div>
                             <div className="flex-1 min-w-0">
                               <CardTitle className="text-base sm:text-lg flex items-center gap-2">
                                 {MEAL_LABELS[mealType]}
+                                {optionCount > 0 && (
+                                  <span className="text-xs px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full">
+                                    {optionCount} {optionCount === 1 ? 'option' : 'options'}
+                                  </span>
+                                )}
                               </CardTitle>
                               <div className="flex items-center gap-2 text-xs text-gray-500">
                                 <Clock className="w-3 h-3" />
                                 <span>{meal.time}</span>
-                                {hasItems && (
+                                {optionCount > 0 && (
                                   <>
                                     <span>•</span>
-                                    <span>{itemCount} {itemCount === 1 ? 'item' : 'items'}</span>
+                                    <span>{optionCount} {optionCount === 1 ? 'option' : 'options'}</span>
                                   </>
                                 )}
                               </div>
@@ -1075,49 +1299,62 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
 
                       {isExpanded && (
                         <CardContent className="pt-0">
-                          {hasItems ? (
-                            <div className="space-y-2">
-                              {meal.items.filter(item => item.name.trim()).map((item, index) => (
-                                <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                                  <div className="w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center shrink-0 mt-0.5">
-                                    <span className="text-emerald-600 dark:text-emerald-400 text-xs font-semibold">{index + 1}</span>
+                          {hasOptions && optionCount > 0 ? (
+                            <div className="space-y-3">
+                              {meal.options!.filter(opt => opt.items.some(item => item.name.trim())).map((option, optionIndex) => (
+                                <div key={option.id} className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border-2 border-blue-200 dark:border-blue-800">
+                                  <div className="flex items-start justify-between mb-2">
+                                    <h4 className="font-semibold text-blue-900 dark:text-blue-100 flex items-center gap-2">
+                                      <span className="w-6 h-6 rounded-full bg-blue-200 dark:bg-blue-800 flex items-center justify-center text-xs">
+                                        {optionIndex + 1}
+                                      </span>
+                                      {option.name}
+                                    </h4>
                                   </div>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="font-medium text-gray-900 dark:text-white">{item.name}</p>
-                                    <div className="flex flex-wrap gap-3 mt-1.5 text-sm text-gray-600 dark:text-gray-400">
-                                      {item.portions && (
+                                  {(option.portions || option.calories) && (
+                                    <div className="flex flex-wrap gap-3 mb-2 text-sm text-blue-800 dark:text-blue-200">
+                                      {option.portions && (
                                         <span className="flex items-center gap-1">
-                                          <span className="w-4 h-4 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                                            <span className="text-xs">📊</span>
-                                          </span>
-                                          {item.portions}
+                                          <span className="text-xs">📊</span>
+                                          {option.portions}
                                         </span>
                                       )}
-                                      {item.calories && (
+                                      {option.calories && (
                                         <span className="flex items-center gap-1">
-                                          <span className="w-4 h-4 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
-                                            <span className="text-xs">🔥</span>
-                                          </span>
-                                          {item.calories} cal
+                                          <span className="text-xs">🔥</span>
+                                          {option.calories} cal
                                         </span>
                                       )}
                                     </div>
+                                  )}
+                                  <div className="space-y-1.5 ml-2 border-l-2 border-blue-300 dark:border-blue-700 pl-3">
+                                    {option.items.filter(item => item.name.trim()).map((item, itemIndex) => (
+                                      <div key={itemIndex} className="text-sm">
+                                        <p className="font-medium text-gray-900 dark:text-white">• {item.name}</p>
+                                        {(item.portions || item.calories) && (
+                                          <div className="flex gap-2 ml-3 mt-0.5 text-xs text-gray-600 dark:text-gray-400">
+                                            {item.portions && <span>📊 {item.portions}</span>}
+                                            {item.calories && <span>🔥 {item.calories} cal</span>}
+                                          </div>
+                                        )}
+                                      </div>
+                                    ))}
                                   </div>
+                                  {option.notes && (
+                                    <div className="mt-2 p-2 bg-amber-50 dark:bg-amber-900/20 rounded border border-amber-200 dark:border-amber-800">
+                                      <p className="text-xs text-amber-800 dark:text-amber-200 flex items-start gap-1">
+                                        <span className="shrink-0">📝</span>
+                                        <span>{option.notes}</span>
+                                      </p>
+                                    </div>
+                                  )}
                                 </div>
                               ))}
-                              {meal.notes && (
-                                <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
-                                  <p className="text-sm text-amber-800 dark:text-amber-200 flex items-start gap-2">
-                                    <span className="shrink-0">📝</span>
-                                    <span>{meal.notes}</span>
-                                  </p>
-                                </div>
-                              )}
                             </div>
                           ) : (
                             <div className="text-center py-6 text-gray-400">
                               <UtensilsCrossed className="w-10 h-10 mx-auto mb-2 opacity-50" />
-                              <p className="text-sm">No items added</p>
+                              <p className="text-sm">No options added</p>
                             </div>
                           )}
                         </CardContent>
@@ -1223,20 +1460,21 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
             <div className="space-y-3 sm:space-y-4 mt-4">
               {MEAL_TYPES.map((mealType) => {
                 const meal = currentDayMeals[mealType];
-                const hasItems = meal?.items && meal.items.length > 0;
+                const hasOptions = meal?.options && meal.options.length > 0;
+                const optionCount = meal?.options?.filter(opt => opt.items && opt.items.some(item => item.name && item.name.trim())).length || 0;
 
                 return (
                   <Card key={mealType} className={`overflow-hidden ${
-                      hasItems ? 'border-l-4 border-l-emerald-500' : ''
+                      hasOptions ? 'border-l-4 border-l-emerald-500' : ''
                     }`}>
                     <CardHeader className="pb-3">
                       <div className="flex items-center gap-3">
                         <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
-                          hasItems
+                          hasOptions
                             ? 'bg-gradient-to-br from-emerald-400 to-teal-500'
                             : 'bg-gray-200 dark:bg-gray-700'
                         }`}>
-                          <UtensilsCrossed className={`w-5 h-5 ${hasItems ? 'text-white' : 'text-gray-400'}`} />
+                          <UtensilsCrossed className={`w-5 h-5 ${hasOptions ? 'text-white' : 'text-gray-400'}`} />
                         </div>
                         <div className="flex-1 min-w-0">
                           <CardTitle className="text-base sm:text-lg">{MEAL_LABELS[mealType]}</CardTitle>
@@ -1250,41 +1488,62 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                       </div>
                     </CardHeader>
                     <CardContent>
-                      {hasItems ? (
-                        <div className="space-y-2">
-                          {meal.items.map((item, index) => (
-                            <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                              <div className="w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center shrink-0 mt-0.5">
-                                <span className="text-emerald-600 dark:text-emerald-400 text-xs font-semibold">{index + 1}</span>
+                      {hasOptions && optionCount > 0 ? (
+                        <div className="space-y-3">
+                          {meal.options!.filter(opt => opt.items && opt.items.some(item => item.name && item.name.trim())).map((option, optionIndex) => (
+                            <div key={option.id} className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border-2 border-blue-200 dark:border-blue-800">
+                              <div className="flex items-start justify-between mb-2">
+                                <h4 className="font-semibold text-blue-900 dark:text-blue-100 flex items-center gap-2">
+                                  <span className="w-6 h-6 rounded-full bg-blue-200 dark:bg-blue-800 flex items-center justify-center text-xs">
+                                    {optionIndex + 1}
+                                  </span>
+                                  {option.name}
+                                </h4>
                               </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium text-gray-900 dark:text-white">{item.name}</p>
-                                <div className="flex flex-wrap gap-3 mt-1.5 text-sm text-gray-600 dark:text-gray-400">
-                                  {item.portions && (
+                              {(option.portions || option.calories) && (
+                                <div className="flex flex-wrap gap-3 mb-2 text-sm text-blue-800 dark:text-blue-200">
+                                  {option.portions && (
                                     <span className="flex items-center gap-1">
-                                      <span className="w-4 h-4 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                                        <span className="text-xs">📊</span>
-                                      </span>
-                                      {item.portions}
+                                      <span className="text-xs">📊</span>
+                                      {option.portions}
                                     </span>
                                   )}
-                                  {item.calories && (
+                                  {option.calories && (
                                     <span className="flex items-center gap-1">
-                                      <span className="w-4 h-4 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
-                                        <span className="text-xs">🔥</span>
-                                      </span>
-                                      {item.calories} cal
+                                      <span className="text-xs">🔥</span>
+                                      {option.calories} cal
                                     </span>
                                   )}
                                 </div>
+                              )}
+                              <div className="space-y-1.5 ml-2 border-l-2 border-blue-300 dark:border-blue-700 pl-3">
+                                {option.items.filter(item => item.name && item.name.trim()).map((item, itemIndex) => (
+                                  <div key={itemIndex} className="text-sm">
+                                    <p className="font-medium text-gray-900 dark:text-white">• {item.name}</p>
+                                    {(item.portions || item.calories) && (
+                                      <div className="flex gap-2 ml-3 mt-0.5 text-xs text-gray-600 dark:text-gray-400">
+                                        {item.portions && <span>📊 {item.portions}</span>}
+                                        {item.calories && <span>🔥 {item.calories} cal</span>}
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
                               </div>
+                              {option.notes && (
+                                <div className="mt-2 p-2 bg-amber-50 dark:bg-amber-900/20 rounded border border-amber-200 dark:border-amber-800">
+                                  <p className="text-xs text-amber-800 dark:text-amber-200 flex items-start gap-1">
+                                    <span className="shrink-0">📝</span>
+                                    <span>{option.notes}</span>
+                                  </p>
+                                </div>
+                              )}
                             </div>
                           ))}
                         </div>
                       ) : (
                         <div className="text-center py-6 text-gray-400">
                           <UtensilsCrossed className="w-10 h-10 mx-auto mb-2 opacity-50" />
-                          <p className="text-sm">No items for {MEAL_LABELS[mealType].toLowerCase()}</p>
+                          <p className="text-sm">No options for {MEAL_LABELS[mealType].toLowerCase()}</p>
                         </div>
                       )}
                     </CardContent>

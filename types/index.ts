@@ -41,6 +41,7 @@ export interface DailyMeals {
   preWorkout?: Meal;
   postWorkout?: Meal;
   breakfast?: Meal;
+  midMeal?: Meal;
   lunch?: Meal;
   snacks?: Meal;
   dinner?: Meal;
@@ -50,7 +51,17 @@ export interface DailyMeals {
 export interface Meal {
   time?: string;
   items: FoodItem[];
+  options?: MealOption[];  // New: support for meal options
   notes?: string;
+}
+
+export interface MealOption {
+  id: string;  // unique identifier for the option
+  name: string;  // e.g., "Option 1" or "Roti + Dal + Chawal"
+  items: FoodItem[];
+  portions?: string;  // combined portion for all items in this option
+  calories?: number;  // combined calories for all items in this option
+  notes?: string;  // notes specific to this option
 }
 
 export interface FoodItem {
@@ -77,7 +88,7 @@ export interface FieldConfig {
 }
 
 // UI Types
-export type MealType = 'preWorkout' | 'postWorkout' | 'breakfast' | 'lunch' | 'snacks' | 'dinner' | 'afterDinner';
+export type MealType = 'preWorkout' | 'postWorkout' | 'breakfast' | 'midMeal' | 'lunch' | 'snacks' | 'dinner' | 'afterDinner';
 
 export interface DayOfWeek {
   key: string;
