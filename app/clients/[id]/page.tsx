@@ -38,6 +38,20 @@ const MEAL_DEFAULTS: Record<MealType, { time: string }> = {
   afterDinner: { time: '21:00' }
 };
 
+// Build quick-mode meals from a day's meals, converting old format (items array) to new format (options array)
+const toQuickMeals = (dayMeals: any): Record<MealType, { time: string; options?: MealOption[] }> =>
+  Object.fromEntries(MEAL_TYPES.map((type) => {
+    const meal = dayMeals?.[type];
+    const options: MealOption[] = [];
+    if (meal?.items && meal.items.length > 0) {
+      options.push({ id: '1', name: 'Option 1', items: meal.items, portions: undefined, calories: undefined });
+    }
+    if (meal?.options) {
+      options.push(...meal.options);
+    }
+    return [type, { time: meal?.time || MEAL_DEFAULTS[type].time, options }];
+  })) as Record<MealType, { time: string; options?: MealOption[] }>;
+
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 // BMI Calculation Helper
@@ -239,6 +253,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
       preWorkout: { time: '06:00', options: [] },
       postWorkout: { time: '07:30', options: [] },
       breakfast: { time: '08:00', options: [] },
+      midMeal: { time: '10:30', options: [] },
       lunch: { time: '13:00', options: [] },
       snacks: { time: '16:00', options: [] },
       dinner: { time: '19:00', options: [] },
@@ -983,15 +998,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                                 setDietPlan(plan);
                                 const mondayMeals = plan.meals.Monday;
                                 if (mondayMeals) {
-                                  setQuickMeals({
-                                    preWorkout: { time: mondayMeals.preWorkout?.time || '06:00', items: mondayMeals.preWorkout?.items || [] },
-                                    postWorkout: { time: mondayMeals.postWorkout?.time || '07:30', items: mondayMeals.postWorkout?.items || [] },
-                                    breakfast: { time: mondayMeals.breakfast?.time || '08:00', items: mondayMeals.breakfast?.items || [] },
-                                    lunch: { time: mondayMeals.lunch?.time || '13:00', items: mondayMeals.lunch?.items || [] },
-                                    snacks: { time: mondayMeals.snacks?.time || '16:00', items: mondayMeals.snacks?.items || [] },
-                                    dinner: { time: mondayMeals.dinner?.time || '19:00', items: mondayMeals.dinner?.items || [] },
-                                    afterDinner: { time: mondayMeals.afterDinner?.time || '21:00', items: mondayMeals.afterDinner?.items || [] }
-                                  });
+                                  setQuickMeals(toQuickMeals(mondayMeals));
                                 }
                                 setShowPlansList(false);
                               }}
